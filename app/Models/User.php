@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
+// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
-use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -16,6 +16,7 @@ use Laravel\Fortify\PasskeyAuthenticatable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 use Spatie\Permission\Traits\HasRoles;
 use Illuminate\Database\Eloquent\SoftDeletes;
+
 
 /**
  * @property int $id
@@ -30,9 +31,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['name', 'email', 'password'])]
-#[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
-class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
+
+class User extends Authenticatable implements PasskeyUser
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable, PasskeyAuthenticatable, TwoFactorAuthenticatable, HasRoles, SoftDeletes;
@@ -50,7 +50,6 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
         ];
     }
 
-
     /**
      * Get the user's initials
      */
@@ -67,6 +66,7 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
         'name', 'email', 'password', 'tipo_documento', 'numero_documento',
         'celular', 'direccion', 'fecha_nacimiento', 'genero', 'foto_perfil', 'estado'
     ];
+
     protected $hidden = [
         'password',
         'remember_token',

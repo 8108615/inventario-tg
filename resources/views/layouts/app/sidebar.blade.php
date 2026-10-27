@@ -23,6 +23,10 @@
                     <flux:navlist.item icon="users" :href="route('admin.usuarios.index')"
                         :current="request()->routeIs('admin.usuarios.index')" wire:navigate>Usuarios
                     </flux:navlist.item>
+
+                    <flux:navlist.item icon="tag" :href="route('admin.categorias.index')"
+                        :current="request()->routeIs('admin.categorias.*')" wire:navigate>Categorías
+                    </flux:navlist.item>
                 </flux:sidebar.group>
             </flux:sidebar.nav>
 

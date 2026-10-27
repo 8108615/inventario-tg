@@ -93,13 +93,7 @@
                 </tr>
             </thead>
             <tbody class="bg-white dark:bg-zinc-800">
-                {{-- @php
-                    $nro = ($usuarios->currentPage() - 1) * $usuarios->perPage() + 1;
-                @endphp
-                @foreach ($usuarios as $usuario)
-                @php
-                    $rol_usuario = $usuario->roles->pluck('name')->join(', ')
-                @endphp--}}
+
                 @foreach ($usuarios as $usuario)
                     <tr
                         class="even:bg-slate-50 odd:bg-white dark:even:bg-zinc-700/20 dark:odd:bg-zinc-800 hover:bg-blue-50 dark:hover:bg-zinc-700/50 transition">
@@ -111,9 +105,7 @@
                         <td class="px-3 py-2 border text-sm text-center">
                             <img src="{{ $usuario->foto_perfil ? asset('storage/'.$usuario->foto_perfil) : asset('img/default-user.png') }}" class="w-10 h-10 rounded-full mx-auto">
                         </td>
-                        {{-- <td
-                            class="px-3 py-2 border border-gray-200 dark:border-zinc-700 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                            {{ $rol_usuario }} </td> --}}
+
                         <td
                             class="px-3 py-2 border border-gray-200 dark:border-zinc-700 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                             {{ $usuario->getRoleNames()->join(', ') }}
