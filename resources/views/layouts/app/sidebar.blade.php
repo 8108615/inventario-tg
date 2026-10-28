@@ -27,6 +27,10 @@
                     <flux:navlist.item icon="tag" :href="route('admin.categorias.index')"
                         :current="request()->routeIs('admin.categorias.*')" wire:navigate>Categorías
                     </flux:navlist.item>
+
+                    <flux:navlist.item icon="cube" :href="route('admin.productos.index')"
+                        :current="request()->routeIs('admin.productos.*')" wire:navigate>Productos
+                    </flux:navlist.item>
                 </flux:sidebar.group>
             </flux:sidebar.nav>
 
