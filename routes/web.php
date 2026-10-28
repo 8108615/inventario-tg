@@ -45,10 +45,16 @@ Route::delete('/admin/categoria/{id}', [App\Http\Controllers\CategoriaController
 Route::get('/admin/productos', [App\Http\Controllers\ProductoController::class, 'index'])->name('admin.productos.index')->middleware('auth');
 Route::get('/admin/productos/create', [App\Http\Controllers\ProductoController::class, 'create'])->name('admin.productos.create')->middleware('auth');
 Route::post('/admin/productos', [App\Http\Controllers\ProductoController::class, 'store'])->name('admin.productos.store')->middleware('auth');
+
+// Ruta AJAX para Yajra DataTables de Productos
+Route::get('/admin/productos/data', [App\Http\Controllers\ProductoController::class, 'getProductos'])->name('admin.productos.data')->middleware('auth');
+
 Route::post('/admin/producto/{id}/restaurar', [App\Http\Controllers\ProductoController::class, 'restaurar'])->name('admin.productos.restaurar')->middleware('auth');
 Route::get('/admin/producto/{id}', [App\Http\Controllers\ProductoController::class, 'show'])->name('admin.productos.show')->middleware('auth');
 Route::get('/admin/producto/{id}/edit', [App\Http\Controllers\ProductoController::class, 'edit'])->name('admin.productos.edit')->middleware('auth');
 Route::put('/admin/producto/{id}', [App\Http\Controllers\ProductoController::class, 'update'])->name('admin.productos.update')->middleware('auth');
 Route::delete('/admin/producto/{id}', [App\Http\Controllers\ProductoController::class, 'destroy'])->name('admin.productos.destroy')->middleware('auth');
+
+
 
 require __DIR__.'/settings.php';
