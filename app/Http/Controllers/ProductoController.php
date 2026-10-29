@@ -24,9 +24,14 @@ class ProductoController extends Controller
     {
         $request->validate([
             'categoria_id' => 'required|exists:categorias,id',
-            'nombre' => 'required|string|max:255',
-            'stock' => 'required|integer|min:0',
-            'estado' => 'required|in:Activo,Inactivo',
+            'nombre'       => 'required|string|max:255',
+            'codigo'       => 'nullable|string|max:255|unique:productos,codigo',
+            'marca'        => 'nullable|string|max:255',
+            'modelo'       => 'nullable|string|max:255',
+            'serie'        => 'nullable|string|max:255',
+            'stock'        => 'required|integer|min:0',
+            'estado'       => 'required|in:Activo,Inactivo', // Validamos el estado recibido
+            'imagen'       => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
         $data = $request->all();
@@ -34,7 +39,7 @@ class ProductoController extends Controller
         // Manejo de la imagen si se sube una nueva
         if ($request->hasFile('imagen')) {
             $file = $request->file('imagen');
-            $filename = time() . '_' . $file->getClientOriginalName();
+            $filename = time() . '_' . preg_replace('/\s+/', '_', $file->getClientOriginalName());
             $file->move(public_path('productos'), $filename);
             $data['imagen'] = $filename;
         }
@@ -66,16 +71,21 @@ class ProductoController extends Controller
 
         $request->validate([
             'categoria_id' => 'required|exists:categorias,id',
-            'nombre' => 'required|string|max:255',
-            'stock' => 'required|integer|min:0',
-            'estado' => 'required|in:Activo,Inactivo',
+            'nombre'       => 'required|string|max:255',
+            'codigo'       => 'nullable|string|max:255|unique:productos,codigo,' . $producto->id,
+            'marca'        => 'nullable|string|max:255',
+            'modelo'       => 'nullable|string|max:255',
+            'serie'        => 'nullable|string|max:255',
+            'stock'        => 'required|integer|min:0',
+            'estado'       => 'required|in:Activo,Inactivo',
+            'imagen'       => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
         $data = $request->all();
 
         if ($request->hasFile('imagen')) {
             $file = $request->file('imagen');
-            $filename = time() . '_' . $file->getClientOriginalName();
+            $filename = time() . '_' . preg_replace('/\s+/', '_', $file->getClientOriginalName());
             $file->move(public_path('productos'), $filename);
             $data['imagen'] = $filename;
         }
