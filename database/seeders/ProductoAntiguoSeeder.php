@@ -11,65 +11,77 @@ class ProductoAntiguoSeeder extends Seeder
 {
     public function run(): void
     {
-        $path = database_path('seeders/articulo.sql');
+        $pathArticulo = database_path('seeders/articulo.sql');
+        $pathCategoria = database_path('seeders/categoria.sql');
 
-        if (!file_exists($path)) {
-            $path = base_path('articulo.sql');
-        }
-
-        if (!file_exists($path)) {
-            $this->command->error("No se encontró el archivo 'articulo.sql' en database/seeders/ ni en la raíz del proyecto.");
+        if (!file_exists($pathArticulo)) {
+            $this->command->error("No se encontró el archivo 'articulo.sql' en database/seeders/.");
             return;
         }
 
-        $this->command->info("Importando 'articulo.sql' en la base de datos...");
+        $this->command->info("Importando tablas antiguas de respaldo para mapeo...");
 
-        // 1. Ejecutar el archivo SQL para crear y poblar la tabla 'articulo'
-        $sql = file_get_contents($path);
+        // 1. Cargar las tablas SQL antiguas de forma segura si no existen
         try {
-            DB::unprepared($sql);
-        } catch (\Exception $e) {
-            // Si la tabla ya existe, continuamos sin problemas
+            DB::unprepared(file_get_contents($pathArticulo));
+        } catch (\Exception $e) {}
+
+        if (file_exists($pathCategoria)) {
+            try {
+                DB::unprepared(file_get_contents($pathCategoria));
+            } catch (\Exception $e) {}
         }
 
         if (!DB::getSchemaBuilder()->hasTable('articulo')) {
-            $this->command->error("No se pudo crear la tabla 'articulo' a partir del archivo SQL.");
+            $this->command->error("No se pudo leer la tabla 'articulo'.");
             return;
         }
 
-        $categoriaPorDefecto = Categoria::first();
-        $categoriaIdDefault = $categoriaPorDefecto ? $categoriaPorDefecto->id : 1;
-
-        // 2. Traer los registros como arreglos para evitar errores de propiedades inexistentes
+        // 2. Traer todos los artículos antiguos
         $articulosAntiguos = DB::table('articulo')->get();
         $contador = 0;
 
+        $tieneTablaCategoriaAntigua = DB::getSchemaBuilder()->hasTable('categoria');
+
         foreach ($articulosAntiguos as $antiguo) {
-            // Convertir el objeto stdClass a un arreglo asociativo de forma segura
             $row = (array) $antiguo;
 
-            // Limpiar la imagen (si está vacía o es 'NULL', se queda en null para que muestre S/F)
-            $imagenRaw = trim(array_values(array_slice($row, 7, 1))[0] ?? ''); // Intento seguro de ubicar la columna de imagen o ajustamos abajo
+            $categoriaIdFinal = 1;
 
-            // Buscamos la columna de imagen de forma flexible (puedes cambiar 'imagen' por el nombre real si fuera distinto)
+            if ($tieneTablaCategoriaAntigua && isset($row['idcategoria'])) {
+                $catAntigua = DB::table('categoria')->where('idcategoria', $row['idcategoria'])->first();
+
+                if ($catAntigua) {
+                    $catNueva = Categoria::where('nombre', trim($catAntigua->nombre))->first();
+                    if ($catNueva) {
+                        $categoriaIdFinal = $catNueva->id;
+                    }
+                }
+            }
+
+            // Limpiar la imagen
             $imagenVal = $row['imagen'] ?? null;
             $imagen = (!empty($imagenVal) && strtolower($imagenVal) !== 'null') ? trim($imagenVal) : null;
 
+            // Mapear la descripción antigua al campo 'serie' del nuevo sistema
+            $serieVal = $row['descripcion'] ?? null;
+            $serie = (!empty(trim($serieVal)) && strtolower(trim($serieVal)) !== 'null') ? trim($serieVal) : null;
+
             Producto::create([
-                'categoria_id' => $categoriaIdDefault,
+                'categoria_id' => $categoriaIdFinal,
                 'codigo'       => $row['codigo'] ?? $row['codigo_barra'] ?? null,
                 'nombre'       => !empty(trim($row['nombre'] ?? '')) ? trim($row['nombre']) : 'SIN NOMBRE',
                 'marca'        => !empty(trim($row['marca'] ?? '')) ? trim($row['marca']) : null,
                 'modelo'       => !empty(trim($row['modelo'] ?? '')) ? trim($row['modelo']) : null,
-                'serie'        => !empty(trim($row['serie'] ?? '')) ? trim($row['serie']) : null,
+                'serie'        => $serie, // ¡Aquí asignamos la serie real que estaba en la descripción!
                 'stock'        => isset($row['stock']) ? (int)$row['stock'] : 1,
-                'imagen'       => $imagen, // Guarda el nombre de la imagen o null para que muestre S/F
+                'imagen'       => $imagen,
                 'estado'       => 'Activo',
             ]);
 
             $contador++;
         }
 
-        $this->command->info("¡Se migraron los {$contador} productos exitosamente con sus imágenes!");
+        $this->command->info("¡Se migraron los {$contador} productos con sus series y categorías sincronizadas correctamente!");
     }
 }

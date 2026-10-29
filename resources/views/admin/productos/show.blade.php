@@ -89,20 +89,22 @@
                 </div>
             </div>
 
-            <!-- Imagen del Producto (Más pequeña y compacta, alineada a la izquierda) -->
+            <!-- Imagen del Producto (Compacta, recuadro angosto y nombre abajo) -->
             <div>
                 <label class="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">Imagen del Producto:</label>
-                <div class="bg-gray-50 dark:bg-zinc-900 p-3 rounded-lg border border-gray-200 dark:border-zinc-700 flex items-center gap-4">
+                <div class="bg-gray-50 dark:bg-zinc-900 p-3 rounded-lg border border-gray-200 dark:border-zinc-700 inline-flex flex-col items-start gap-2">
                     @if($producto->imagen && file_exists(public_path('productos/' . $producto->imagen)))
-                        <div class="h-20 w-20 rounded-2xl border-2 border-slate-200 dark:border-zinc-700 overflow-hidden bg-white dark:bg-zinc-800 flex items-center justify-center shadow-inner flex-shrink-0">
+                        <div class="h-24 w-24 rounded-2xl border-2 border-slate-200 dark:border-zinc-700 overflow-hidden bg-white dark:bg-zinc-800 flex items-center justify-center shadow-inner flex-shrink-0">
                             <img src="{{ asset('productos/' . $producto->imagen) }}" alt="Imagen del producto" class="h-full w-full object-cover">
                         </div>
-                        <span class="text-sm text-gray-700 dark:text-gray-300 font-mono truncate">{{ $producto->imagen }}</span>
+                        <span class="text-xs text-gray-700 dark:text-gray-300 font-mono truncate max-w-[200px]" title="{{ $producto->imagen }}">
+                            {{ $producto->imagen }}
+                        </span>
                     @else
-                        <div class="h-20 w-20 rounded-2xl border-2 border-slate-200 dark:border-zinc-700 overflow-hidden bg-white dark:bg-zinc-800 flex items-center justify-center shadow-inner flex-shrink-0">
-                            <flux:icon name="photo" class="text-slate-300 dark:text-zinc-600 h-8 w-8" />
+                        <div class="h-24 w-24 rounded-2xl border-2 border-slate-200 dark:border-zinc-700 overflow-hidden bg-white dark:bg-zinc-800 flex items-center justify-center shadow-inner flex-shrink-0">
+                            <flux:icon name="photo" class="text-slate-300 dark:text-zinc-600 h-10 w-10" />
                         </div>
-                        <span class="text-sm text-gray-400 italic">S/F (Sin Fotografía)</span>
+                        <span class="text-xs text-gray-400 italic">S/F (Sin Fotografía)</span>
                     @endif
                 </div>
             </div>

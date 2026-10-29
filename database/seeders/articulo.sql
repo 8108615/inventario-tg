@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 28-10-2026 a las 05:58:01
+-- Tiempo de generación: 29-10-2026 a las 06:28:10
 -- Versión del servidor: 10.4.32-MariaDB
 -- Versión de PHP: 8.0.30
 
@@ -2844,8 +2844,7 @@ INSERT INTO `articulo` (`idarticulo`, `idcategoria`, `codigo`, `nombre`, `marca`
 (2860, 9, 'TG-UM02-0209', 'CAMARA POV', 'AIDA', 'HD3G-IPC-IP67', 1, '15651101EE0122', '1793061707.jpg', 1),
 (2861, 9, 'TG-UM02-0210', 'CAMARA RCP + FUENTES + CABLES', 'AIDA', 'HD3G-IPC-IP67', 1, '15651101EE0120', '1793062004.jpg', 1),
 (2862, 8, 'TG-UM01-0719', 'CAMARA RCP + FUENTES + CABLES', 'AIDA', 'HD3G-IPC-IP67', 1, '15651101EE0119', '1793062350.jpg', 1),
-(2863, 8, 'TG-UM01-0720', 'CAMARA RCP + FUENTES + CABLES', 'AIDA', 'HD3G-IPC-IP67', 1, '15651101EE0123', '1793062473.jpg', 1),
-(2864, 44, '22222222', 'PRUEBA', 'PRUEBA1', 'PRUEBA1', 1, 'PCR1111', '1793063865.jpg', 0);
+(2863, 8, 'TG-UM01-0720', 'CAMARA RCP + FUENTES + CABLES', 'AIDA', 'HD3G-IPC-IP67', 1, '15651101EE0123', '1793062473.jpg', 1);
 
 --
 -- Índices para tablas volcadas

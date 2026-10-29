@@ -30,16 +30,16 @@ class ProductoController extends Controller
             'modelo'       => 'nullable|string|max:255',
             'serie'        => 'nullable|string|max:255',
             'stock'        => 'required|integer|min:0',
-            'estado'       => 'required|in:Activo,Inactivo', // Validamos el estado recibido
+            'estado'       => 'required|in:Activo,Inactivo',
             'imagen'       => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
         $data = $request->all();
 
-        // Manejo de la imagen si se sube una nueva
+        // Manejo de la imagen (Guarda únicamente con el nombre original limpio sin números al inicio)
         if ($request->hasFile('imagen')) {
             $file = $request->file('imagen');
-            $filename = time() . '_' . preg_replace('/\s+/', '_', $file->getClientOriginalName());
+            $filename = preg_replace('/\s+/', '_', $file->getClientOriginalName());
             $file->move(public_path('productos'), $filename);
             $data['imagen'] = $filename;
         }
@@ -83,9 +83,10 @@ class ProductoController extends Controller
 
         $data = $request->all();
 
+        // Manejo de la imagen (Guarda únicamente con el nombre original limpio sin números al inicio)
         if ($request->hasFile('imagen')) {
             $file = $request->file('imagen');
-            $filename = time() . '_' . preg_replace('/\s+/', '_', $file->getClientOriginalName());
+            $filename = preg_replace('/\s+/', '_', $file->getClientOriginalName());
             $file->move(public_path('productos'), $filename);
             $data['imagen'] = $filename;
         }
@@ -151,10 +152,42 @@ class ProductoController extends Controller
                 return '<span class="px-3 py-1 inline-flex text-xs font-semibold rounded-full bg-emerald-500 text-white">Activo</span>';
             })
             ->addColumn('acciones', function ($producto) {
+                $csrfToken = csrf_token();
+                // Limpiamos comillas dobles en el nombre por si el producto lleva alguna para que no rompa el string de JS
+                $nombreProducto = addslashes($producto->nombre);
+
+                // Si el producto está eliminado (SoftDelete), mostramos el botón de Restaurar
+                if ($producto->deleted_at) {
+                    $urlRestaurar = route('admin.productos.restaurar', $producto->id);
+                    return '<div class="flex justify-center gap-1">' .
+                           '<form action="' . $urlRestaurar . '" method="POST" id="formRestaurarProducto' . $producto->id . '" class="inline">' .
+                           '<input type="hidden" name="_token" value="' . $csrfToken . '">' .
+                           '<button type="submit" class="inline-flex items-center px-3 py-1.5 bg-yellow-500 hover:bg-yellow-600 text-white text-xs font-semibold rounded transition cursor-pointer" onclick="confirmarRestauracionProducto' . $producto->id . '(event)">Restaurar</button>' .
+                           '</form>' .
+                           '</div>' .
+                           '<script>' .
+                           'function confirmarRestauracionProducto' . $producto->id . '(event) {' .
+                           '    event.preventDefault();' .
+                           '    Swal.fire({' .
+                           '        title: "¿Desea restaurar el producto \\"' . $nombreProducto . '\\"?",' .
+                           '        icon: "question",' .
+                           '        showCancelButton: true,' .
+                           '        confirmButtonText: "Restaurar",' .
+                           '        confirmButtonColor: "#ca8a04",' .
+                           '        cancelButtonText: "Cancelar"' .
+                           '    }).then((result) => {' .
+                           '        if (result.isConfirmed) {' .
+                           '            document.getElementById("formRestaurarProducto' . $producto->id . '").submit();' .
+                           '        }' .
+                           '    });' .
+                           '}' .
+                           '</script>';
+                }
+
+                // Si está activo, mostramos los botones normales (Ver, Editar, Eliminar)
                 $urlShow = route('admin.productos.show', ['id' => $producto->id]);
                 $urlEdit = route('admin.productos.edit', ['id' => $producto->id]);
                 $urlDestroy = route('admin.productos.destroy', $producto->id);
-                $csrfToken = csrf_token();
 
                 return '<div class="flex justify-center gap-1">' .
                        '<a href="' . $urlShow . '" class="inline-flex items-center px-3 py-1.5 bg-zinc-500 hover:bg-zinc-600 text-white text-xs font-semibold rounded transition shadow-sm">Ver</a>' .
@@ -169,7 +202,7 @@ class ProductoController extends Controller
                        'function confirmarEliminacionProducto' . $producto->id . '(event) {' .
                        '    event.preventDefault();' .
                        '    Swal.fire({' .
-                       '        title: "¿Desea eliminar este producto?",' .
+                       '        title: "¿Desea eliminar el producto \\"' . $nombreProducto . '\\"?",' .
                        '        icon: "warning",' .
                        '        showCancelButton: true,' .
                        '        confirmButtonText: "Eliminar",' .
