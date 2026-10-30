@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Spatie\Permission\Models\Role;
+use Spatie\Permission\Models\Permission;
 
 class RoleController extends Controller
 {
@@ -95,5 +96,29 @@ class RoleController extends Controller
         return redirect()->route('admin.roles.index')
             ->with('mensaje', 'Rol eliminado correctamente')
             ->with('icono', 'success');
+    }
+
+    // Mostrar vista para asignar permisos a un rol específico
+    public function editPermisos(string $id)
+    {
+        $rol = Role::findOrFail($id);
+        $permisos = Permission::all();
+        $permisoRol = $rol->permissions->pluck('name')->toArray();
+
+        return view('admin.roles.permisos', compact('rol', 'permisos', 'permisoRol'));
+    }
+
+    // Actualizar los permisos seleccionados para el rol
+    public function updatePermisos(Request $request, string $id)
+    {
+        $rol = Role::findOrFail($id);
+
+        $permisos = $request->input('permisos', []);
+        $rol->syncPermissions($permisos);
+
+        return redirect()->route('admin.roles.index')->with([
+            'mensaje' => 'Permisos actualizados correctamente para el rol ' . $rol->name,
+            'icono' => 'success'
+        ]);
     }
 }

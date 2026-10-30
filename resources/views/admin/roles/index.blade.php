@@ -21,11 +21,13 @@
                 @endif
             </form>
         </div>
-        <div class="flex-1 justify-end flex">
-            <a href="{{ url('/admin/roles/create') }}" class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg transition flex items-center gap-2">
-                <i class="fas fa-plus mr-2"></i> Crear nuevo
-            </a>
-        </div>
+        @can('Crear Rol')
+            <div class="flex-1 justify-end flex">
+                <a href="{{ url('/admin/roles/create') }}" class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg transition flex items-center gap-2">
+                    <i class="fas fa-plus mr-2"></i> Crear nuevo
+                </a>
+            </div>
+        @endcan
     </div>
     @if (request('buscar'))
         <div class="mt-4 p-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg">
@@ -65,26 +67,39 @@
 
                         <td class="px-3 py-2 border border-gray-200 dark:border-zinc-700 whitespace-nowrap text-center">
                             <div class="flex justify-center gap-2">
-                                <a href="{{ url('/admin/rol/' . $rol->id) }}"
-                                    class="inline-flex items-center px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white text-xs font-semibold rounded transition">
-                                    <i class="fas fa-eye mr-2"></i> Ver
-                                </a>
+                                @can('Ver Rol')
+                                    <a href="{{ url('/admin/rol/' . $rol->id) }}"
+                                        class="inline-flex items-center px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white text-xs font-semibold rounded transition">
+                                        <i class="fas fa-eye mr-2"></i> Ver
+                                    </a>
+                                @endcan
 
-                                <a href="{{ url('/admin/rol/' . $rol->id . '/edit') }}"
-                                    class="inline-flex items-center px-4 py-2 bg-green-500 hover:bg-green-600 text-white text-xs font-semibold rounded transition">
-                                    <i class="fas fa-pencil-alt mr-2"></i> Editar
-                                </a>
+                                @can('Editar Rol')
+                                    <a href="{{ url('/admin/rol/' . $rol->id . '/permisos') }}"
+                                        class="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded transition">
+                                        <i class="fas fa-key mr-2"></i> Permisos
+                                    </a>
+                                @endcan
+                                
+                                @can('Editar Rol')
+                                    <a href="{{ url('/admin/rol/' . $rol->id . '/edit') }}"
+                                        class="inline-flex items-center px-4 py-2 bg-green-500 hover:bg-green-600 text-white text-xs font-semibold rounded transition">
+                                        <i class="fas fa-pencil-alt mr-2"></i> Editar
+                                    </a>
+                                @endcan
 
-                                <form action="{{ url('/admin/rol/' . $rol->id) }}" method="post"
-                                    id="miFormulario{{ $rol->id }}">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" style="cursor: pointer"
-                                        class="inline-flex items-center px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-xs font-semibold rounded transition"
-                                        onclick="preguntar{{ $rol->id }}(event)" >
-                                        <i class="fas fa-trash-alt mr-2"></i> Eliminar
-                                    </button>
-                                </form>
+                                @can('Eliminar Rol')
+                                    <form action="{{ url('/admin/rol/' . $rol->id) }}" method="post"
+                                        id="miFormulario{{ $rol->id }}">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" style="cursor: pointer"
+                                            class="inline-flex items-center px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-xs font-semibold rounded transition"
+                                            onclick="preguntar{{ $rol->id }}(event)" >
+                                            <i class="fas fa-trash-alt mr-2"></i> Eliminar
+                                        </button>
+                                    </form>
+                                @endcan
                                 <script>
                                     function preguntar{{ $rol->id }}(event) {
                                         event.preventDefault();

@@ -16,13 +16,15 @@
         <div id="export-buttons-container" class="flex flex-wrap gap-2"></div>
 
         <!-- Botón Crear Nuevo -->
-        <div>
-            <a href="{{ route('admin.categorias.create') }}"
-                class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg transition flex items-center gap-2">
-                <i class="fas fa-plus mr-2"></i>
-                Crear nuevo
-            </a>
-        </div>
+        @can('Crear Categoría')
+            <div>
+                <a href="{{ route('admin.categorias.create') }}"
+                    class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg transition flex items-center gap-2">
+                    <i class="fas fa-plus mr-2"></i>
+                    Crear nuevo
+                </a>
+            </div>
+        @endcan
     </div>
 
     <!-- Tabla con IDs y clases para DataTables -->
@@ -62,70 +64,78 @@
                         </td>
                         <td class="px-3 py-2 border border-gray-200 dark:border-zinc-700 whitespace-nowrap text-center">
                             @if ($categoria->deleted_at)
-                                <form action="{{ route('admin.categorias.restaurar', $categoria->id) }}" method="post" id="miFormularioRestaurar{{ $categoria->id }}">
-                                    @csrf
-                                    <button type="submit"
-                                        class="inline-flex items-center px-3 py-1.5 bg-yellow-500 hover:bg-yellow-600 text-white text-xs font-semibold rounded transition"
-                                        onclick="preguntarRestaurar{{ $categoria->id }}(event)">
-                                        <i class="fas fa-undo-alt mr-1"></i> Restaurar
-                                    </button>
-                                </form>
-                                <script>
-                                    function preguntarRestaurar{{ $categoria->id }}(event) {
-                                        event.preventDefault();
-                                        Swal.fire({
-                                            title: '¿Desea restaurar esta categoría?',
-                                            icon: 'question',
-                                            showDenyButton: true,
-                                            confirmButtonText: 'Restaurar',
-                                            confirmButtonColor: '#a68d1e',
-                                            denyButtonText: 'Cancelar',
-                                        }).then((result) => {
-                                            if (result.isConfirmed) {
-                                                document.getElementById('miFormularioRestaurar{{ $categoria->id }}').submit();
-                                            }
-                                        });
-                                    }
-                                </script>
-                            @else
-                                <div class="flex justify-center gap-2">
-                                    <a href="{{ route('admin.categorias.show', $categoria->id) }}"
-                                        class="inline-flex items-center px-3 py-1.5 bg-zinc-500 hover:bg-zinc-600 text-white text-xs font-semibold rounded transition shadow-sm">
-                                        <i class="fas fa-eye mr-1"></i> Ver
-                                    </a>
-
-                                    <a href="{{ route('admin.categorias.edit', $categoria->id) }}"
-                                        class="inline-flex items-center px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white text-xs font-semibold rounded transition">
-                                        <i class="fas fa-pencil-alt mr-1"></i> Editar
-                                    </a>
-
-                                    <form action="{{ route('admin.categorias.destroy', $categoria->id) }}" method="post" id="miFormularioEliminar{{ $categoria->id }}">
+                                @can('Restaurar Categoría')
+                                    <form action="{{ route('admin.categorias.restaurar', $categoria->id) }}" method="post" id="miFormularioRestaurar{{ $categoria->id }}">
                                         @csrf
-                                        @method('DELETE')
                                         <button type="submit"
-                                            class="inline-flex items-center px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-semibold rounded transition cursor-pointer"
-                                            onclick="preguntarEliminar{{ $categoria->id }}(event)">
-                                            <i class="fas fa-trash-alt mr-1"></i> Eliminar
+                                            class="inline-flex items-center px-3 py-1.5 bg-yellow-500 hover:bg-yellow-600 text-white text-xs font-semibold rounded transition"
+                                            onclick="preguntarRestaurar{{ $categoria->id }}(event)">
+                                            <i class="fas fa-undo-alt mr-1"></i> Restaurar
                                         </button>
                                     </form>
-
                                     <script>
-                                        function preguntarEliminar{{ $categoria->id }}(event) {
+                                        function preguntarRestaurar{{ $categoria->id }}(event) {
                                             event.preventDefault();
                                             Swal.fire({
-                                                title: '¿Desea eliminar esta categoría?',
+                                                title: '¿Desea restaurar esta categoría?',
                                                 icon: 'question',
                                                 showDenyButton: true,
-                                                confirmButtonText: 'Eliminar',
-                                                confirmButtonColor: '#a5161d',
+                                                confirmButtonText: 'Restaurar',
+                                                confirmButtonColor: '#a68d1e',
                                                 denyButtonText: 'Cancelar',
                                             }).then((result) => {
                                                 if (result.isConfirmed) {
-                                                    document.getElementById('miFormularioEliminar{{ $categoria->id }}').submit();
+                                                    document.getElementById('miFormularioRestaurar{{ $categoria->id }}').submit();
                                                 }
                                             });
                                         }
                                     </script>
+                                @endcan
+                            @else
+                                <div class="flex justify-center gap-2">
+                                    @can('Ver Categoría')
+                                        <a href="{{ route('admin.categorias.show', $categoria->id) }}"
+                                            class="inline-flex items-center px-3 py-1.5 bg-zinc-500 hover:bg-zinc-600 text-white text-xs font-semibold rounded transition shadow-sm">
+                                            <i class="fas fa-eye mr-1"></i> Ver
+                                        </a>
+                                    @endcan
+
+                                    @can('Editar Categoría')
+                                        <a href="{{ route('admin.categorias.edit', $categoria->id) }}"
+                                            class="inline-flex items-center px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white text-xs font-semibold rounded transition">
+                                            <i class="fas fa-pencil-alt mr-1"></i> Editar
+                                        </a>
+                                    @endcan
+
+                                    @can('Eliminar Categoría')
+                                        <form action="{{ route('admin.categorias.destroy', $categoria->id) }}" method="post" id="miFormularioEliminar{{ $categoria->id }}">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit"
+                                                class="inline-flex items-center px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-semibold rounded transition cursor-pointer"
+                                                onclick="preguntarEliminar{{ $categoria->id }}(event)">
+                                                <i class="fas fa-trash-alt mr-1"></i> Eliminar
+                                            </button>
+                                        </form>
+
+                                        <script>
+                                            function preguntarEliminar{{ $categoria->id }}(event) {
+                                                event.preventDefault();
+                                                Swal.fire({
+                                                    title: '¿Desea eliminar esta categoría?',
+                                                    icon: 'question',
+                                                    showDenyButton: true,
+                                                    confirmButtonText: 'Eliminar',
+                                                    confirmButtonColor: '#a5161d',
+                                                    denyButtonText: 'Cancelar',
+                                                }).then((result) => {
+                                                    if (result.isConfirmed) {
+                                                        document.getElementById('miFormularioEliminar{{ $categoria->id }}').submit();
+                                                    }
+                                                });
+                                            }
+                                        </script>
+                                    @endcan
                                 </div>
                             @endif
                         </td>

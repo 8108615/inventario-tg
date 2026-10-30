@@ -121,6 +121,7 @@ class ProductoController extends Controller
     public function getProductos(Request $request)
     {
         $query = Producto::with('categoria')->withTrashed();
+        $user = auth()->user();
 
         return DataTables::of($query)
             ->addIndexColumn()
@@ -151,70 +152,78 @@ class ProductoController extends Controller
                 }
                 return '<span class="px-3 py-1 inline-flex text-xs font-semibold rounded-full bg-emerald-500 text-white">Activo</span>';
             })
-            ->addColumn('acciones', function ($producto) {
+            ->addColumn('acciones', function ($producto) use ($user) {
                 $csrfToken = csrf_token();
-                // Limpiamos comillas dobles en el nombre por si el producto lleva alguna para que no rompa el string de JS
                 $nombreProducto = addslashes($producto->nombre);
+                $html = '<div class="flex justify-center gap-1">';
 
-                // Si el producto está eliminado (SoftDelete), mostramos el botón de Restaurar
+                // Si el producto está eliminado (SoftDelete)
                 if ($producto->deleted_at) {
-                    $urlRestaurar = route('admin.productos.restaurar', $producto->id);
-                    return '<div class="flex justify-center gap-1">' .
-                           '<form action="' . $urlRestaurar . '" method="POST" id="formRestaurarProducto' . $producto->id . '" class="inline">' .
-                           '<input type="hidden" name="_token" value="' . $csrfToken . '">' .
-                           '<button type="submit" class="inline-flex items-center px-3 py-1.5 bg-yellow-500 hover:bg-yellow-600 text-white text-xs font-semibold rounded transition cursor-pointer" onclick="confirmarRestauracionProducto' . $producto->id . '(event)">Restaurar</button>' .
-                           '</form>' .
-                           '</div>' .
-                           '<script>' .
-                           'function confirmarRestauracionProducto' . $producto->id . '(event) {' .
-                           '    event.preventDefault();' .
-                           '    Swal.fire({' .
-                           '        title: "¿Desea restaurar el producto \\"' . $nombreProducto . '\\"?",' .
-                           '        icon: "question",' .
-                           '        showCancelButton: true,' .
-                           '        confirmButtonText: "Restaurar",' .
-                           '        confirmButtonColor: "#ca8a04",' .
-                           '        cancelButtonText: "Cancelar"' .
-                           '    }).then((result) => {' .
-                           '        if (result.isConfirmed) {' .
-                           '            document.getElementById("formRestaurarProducto' . $producto->id . '").submit();' .
-                           '        }' .
-                           '    });' .
-                           '}' .
-                           '</script>';
+                    if ($user->can('Restaurar Producto')) {
+                        $urlRestaurar = route('admin.productos.restaurar', $producto->id);
+                        $html .= '<form action="' . $urlRestaurar . '" method="POST" id="formRestaurarProducto' . $producto->id . '" class="inline">' .
+                                 '<input type="hidden" name="_token" value="' . $csrfToken . '">' .
+                                 '<button type="submit" class="inline-flex items-center px-3 py-1.5 bg-yellow-500 hover:bg-yellow-600 text-white text-xs font-semibold rounded transition cursor-pointer" onclick="confirmarRestauracionProducto' . $producto->id . '(event)">Restaurar</button>' .
+                                 '</form>' .
+                                 '<script>' .
+                                 'function confirmarRestauracionProducto' . $producto->id . '(event) {' .
+                                 '    event.preventDefault();' .
+                                 '    Swal.fire({' .
+                                 '        title: "¿Desea restaurar el producto \\"' . $nombreProducto . '\\"?",' .
+                                 '        icon: "question",' .
+                                 '        showCancelButton: true,' .
+                                 '        confirmButtonText: "Restaurar",' .
+                                 '        confirmButtonColor: "#ca8a04",' .
+                                 '        cancelButtonText: "Cancelar"' .
+                                 '    }).then((result) => {' .
+                                 '        if (result.isConfirmed) {' .
+                                 '            document.getElementById("formRestaurarProducto' . $producto->id . '").submit();' .
+                                 '        }' .
+                                 '    });' .
+                                 '}' .
+                                 '</script>';
+                    }
+                } else {
+                    // Si está activo, evaluamos cada botón según los permisos del usuario
+                    if ($user->can('Ver Producto')) {
+                        $urlShow = route('admin.productos.show', ['id' => $producto->id]);
+                        $html .= '<a href="' . $urlShow . '" class="inline-flex items-center px-3 py-1.5 bg-zinc-500 hover:bg-zinc-600 text-white text-xs font-semibold rounded transition shadow-sm">Ver</a>';
+                    }
+
+                    if ($user->can('Editar Producto')) {
+                        $urlEdit = route('admin.productos.edit', ['id' => $producto->id]);
+                        $html .= '<a href="' . $urlEdit . '" class="inline-flex items-center px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white text-xs font-semibold rounded transition">Editar</a>';
+                    }
+
+                    if ($user->can('Eliminar Producto')) {
+                        $urlDestroy = route('admin.productos.destroy', $producto->id);
+                        $html .= '<form action="' . $urlDestroy . '" method="POST" id="formEliminarProducto' . $producto->id . '" class="inline">' .
+                                 '<input type="hidden" name="_token" value="' . $csrfToken . '">' .
+                                 '<input type="hidden" name="_method" value="DELETE">' .
+                                 '<button type="submit" class="inline-flex items-center px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-semibold rounded transition cursor-pointer" onclick="confirmarEliminacionProducto' . $producto->id . '(event)">Eliminar</button>' .
+                                 '</form>' .
+                                 '<script>' .
+                                 'function confirmarEliminacionProducto' . $producto->id . '(event) {' .
+                                 '    event.preventDefault();' .
+                                 '    Swal.fire({' .
+                                 '        title: "¿Desea eliminar el producto \\"' . $nombreProducto . '\\"?",' .
+                                 '        icon: "warning",' .
+                                 '        showCancelButton: true,' .
+                                 '        confirmButtonText: "Eliminar",' .
+                                 '        confirmButtonColor: "#a5161d",' .
+                                 '        cancelButtonText: "Cancelar"' .
+                                 '    }).then((result) => {' .
+                                 '        if (result.isConfirmed) {' .
+                                 '            document.getElementById("formEliminarProducto' . $producto->id . '").submit();' .
+                                 '        }' .
+                                 '    });' .
+                                 '}' .
+                                 '</script>';
+                    }
                 }
 
-                // Si está activo, mostramos los botones normales (Ver, Editar, Eliminar)
-                $urlShow = route('admin.productos.show', ['id' => $producto->id]);
-                $urlEdit = route('admin.productos.edit', ['id' => $producto->id]);
-                $urlDestroy = route('admin.productos.destroy', $producto->id);
-
-                return '<div class="flex justify-center gap-1">' .
-                       '<a href="' . $urlShow . '" class="inline-flex items-center px-3 py-1.5 bg-zinc-500 hover:bg-zinc-600 text-white text-xs font-semibold rounded transition shadow-sm">Ver</a>' .
-                       '<a href="' . $urlEdit . '" class="inline-flex items-center px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white text-xs font-semibold rounded transition">Editar</a>' .
-                       '<form action="' . $urlDestroy . '" method="POST" id="formEliminarProducto' . $producto->id . '" class="inline">' .
-                       '<input type="hidden" name="_token" value="' . $csrfToken . '">' .
-                       '<input type="hidden" name="_method" value="DELETE">' .
-                       '<button type="submit" class="inline-flex items-center px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-semibold rounded transition cursor-pointer" onclick="confirmarEliminacionProducto' . $producto->id . '(event)">Eliminar</button>' .
-                       '</form>' .
-                       '</div>' .
-                       '<script>' .
-                       'function confirmarEliminacionProducto' . $producto->id . '(event) {' .
-                       '    event.preventDefault();' .
-                       '    Swal.fire({' .
-                       '        title: "¿Desea eliminar el producto \\"' . $nombreProducto . '\\"?",' .
-                       '        icon: "warning",' .
-                       '        showCancelButton: true,' .
-                       '        confirmButtonText: "Eliminar",' .
-                       '        confirmButtonColor: "#a5161d",' .
-                       '        cancelButtonText: "Cancelar"' .
-                       '    }).then((result) => {' .
-                       '        if (result.isConfirmed) {' .
-                       '            document.getElementById("formEliminarProducto' . $producto->id . '").submit();' .
-                       '        }' .
-                       '    });' .
-                       '}' .
-                       '</script>';
+                $html .= '</div>';
+                return $html;
             })
             ->rawColumns(['imagen_html', 'categoria_nombre', 'marca_col', 'modelo_col', 'serie_col', 'codigo_barra_col', 'estado_html', 'acciones'])
             ->make(true);

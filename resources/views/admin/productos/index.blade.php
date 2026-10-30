@@ -16,13 +16,15 @@
         <div id="export-buttons-container" class="flex flex-wrap gap-2"></div>
 
         <!-- Botón Crear Nuevo -->
-        <div>
-            <a href="{{ route('admin.productos.create') }}"
-                class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg transition flex items-center gap-2">
-                <i class="fas fa-plus mr-2"></i>
-                Crear nuevo
-            </a>
-        </div>
+        @can('Crear Producto')
+            <div>
+                <a href="{{ route('admin.productos.create') }}"
+                    class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg transition flex items-center gap-2">
+                    <i class="fas fa-plus mr-2"></i>
+                    Crear nuevo
+                </a>
+            </div>
+        @endcan
     </div>
 
     <!-- Tabla con IDs y clases para DataTables -->
