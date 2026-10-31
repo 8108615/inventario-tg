@@ -1,4 +1,5 @@
 <x-layouts::auth.card :title="__('Iniciar sesión')">
+
     <div class="login-content">
 
         {{-- Encabezado con el logo de THE GAME --}}
@@ -15,6 +16,7 @@
             </div>
         </div>
 
+        {{-- Descripción --}}
         <p class="login-description">
             Controla, organiza y gestiona todos
             <br>
@@ -29,36 +31,46 @@
 
         <x-passkey-verify />
 
-        {{-- Formulario original de Laravel --}}
+        {{-- Formulario de inicio de sesión --}}
         <form
             method="POST"
             action="{{ route('login.store') }}"
-            class="flex flex-col gap-5"
+            class="login-form flex flex-col gap-5"
         >
             @csrf
 
-            <flux:input
-                name="email"
-                :label="__('Correo electrónico')"
-                :value="old('email')"
-                type="email"
-                required
-                autofocus
-                autocomplete="email"
-                placeholder="Ingrese su correo electrónico"
-            />
-
-            <div class="relative">
+            {{-- Correo electrónico --}}
+            <div class="login-field-group">
                 <flux:input
+                    class="login-field"
+                    name="email"
+                    :label="__('Correo electrónico')"
+                    :value="old('email')"
+                    type="email"
+                    required
+                    autofocus
+                    autocomplete="email"
+                    placeholder="Ingrese su correo electrónico"
+                    icon="envelope"
+                />
+            </div>
+
+            {{-- Contraseña --}}
+            <div class="login-field-group">
+
+                <flux:input
+                    class="login-field"
                     name="password"
                     :label="__('Contraseña')"
                     type="password"
                     required
                     autocomplete="current-password"
-                    :placeholder="__('Ingrese su contraseña')"
+                    placeholder="Ingrese su contraseña"
                     viewable
+                    icon="lock-closed"
                 />
 
+                {{-- Recuperar contraseña --}}
                 @if (Route::has('password.request'))
                     <div class="mt-2 text-right">
                         <flux:link
@@ -69,22 +81,26 @@
                         </flux:link>
                     </div>
                 @endif
+
             </div>
 
+            {{-- Recordarme --}}
             <flux:checkbox
                 name="remember"
                 :label="__('Recordarme')"
                 :checked="old('remember')"
             />
 
+            {{-- Botón de acceso --}}
             <flux:button
                 variant="primary"
                 type="submit"
-                class="w-full"
+                class="login-button w-full"
                 data-test="login-button"
             >
                 Iniciar sesión
             </flux:button>
+
         </form>
 
         {{-- Pie del panel --}}
@@ -95,4 +111,5 @@
         </div>
 
     </div>
+
 </x-layouts::auth.card>
