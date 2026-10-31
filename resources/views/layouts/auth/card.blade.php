@@ -549,6 +549,58 @@
                 transform: none;
             }
         }
+
+        /* =========================================
+        COPYRIGHT GLOBAL FIJO DEL LOGIN
+        ========================================= */
+
+        .login-copyright {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+
+            padding: 14px 28px;
+
+            background: rgba(2, 11, 22, 0.96);
+            border-top: 1px solid rgba(0, 157, 255, 0.35);
+
+            color: #a9bfd7;
+            font-size: 11px;
+            line-height: 1.5;
+        }
+
+        .login-copyright p {
+            margin: 0;
+        }
+
+        .login-copyright strong {
+            color: #dcecff;
+            font-weight: 600;
+        }
+
+        /* Adaptación para celulares */
+        @media (max-width: 768px) {
+            .login-copyright {
+                flex-direction: column;
+                justify-content: center;
+                gap: 4px;
+
+                padding: 10px 12px;
+                text-align: center;
+                font-size: 10px;
+            }
+
+            .login-screen {
+                padding-bottom: 100px;
+            }
+        }
     </style>
 </head>
 
@@ -567,7 +619,23 @@
         </flux:toast.group>
     @endpersist
 
+    
     @fluxScripts
+
+    {{-- COPYRIGHT FIJO DEL LOGIN --}}
+    <footer class="login-copyright">
+
+        <p>
+            © {{ date('Y') }} Sistema de Inventario - THE GAME SRL.
+            Todos los derechos reservados.
+        </p>
+
+        <p>
+            Desarrollado por:
+            <strong>ERICK FERNANDO MORALES GIL</strong>
+        </p>
+
+    </footer>
 </body>
 
 </html>
