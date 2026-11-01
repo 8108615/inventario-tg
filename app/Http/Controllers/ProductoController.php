@@ -120,7 +120,22 @@ class ProductoController extends Controller
 
     public function getProductos(Request $request)
     {
-        $query = Producto::with('categoria')->withTrashed();
+        $query = Producto::query()
+        ->select([
+            'id',
+            'categoria_id',
+            'codigo',
+            'nombre',
+            'marca',
+            'modelo',
+            'serie',
+            'stock',
+            'imagen',
+            'estado',
+            'deleted_at',
+        ])
+        ->with('categoria:id,nombre')
+        ->withTrashed();
         $user = auth()->user();
 
         return DataTables::of($query)

@@ -36,7 +36,8 @@
 
                     @can('Listado de Productos')
                         <flux:navlist.item icon="cube" :href="route('admin.productos.index')"
-                            :current="request()->routeIs('admin.productos.*')" wire:navigate>Productos
+                            :current="request()->routeIs('admin.productos.*')">
+                            Productos
                         </flux:navlist.item>
                     @endcan
                 </flux:sidebar.group>
