@@ -11,7 +11,118 @@ class ProductoController extends Controller
 {
     public function index(Request $request)
     {
-        return view('admin.productos.index');
+        // Obtener el texto del buscador
+        $buscar = trim($request->input('buscar', ''));
+
+        // Consultar productos activos y eliminados
+        $productos = Producto::withTrashed()
+            ->with(['categoria' => function ($query) {
+                $query->withTrashed();
+            }])
+
+            // Buscar en los campos del producto
+            ->when($buscar !== '', function ($query) use ($buscar) {
+                $query->where(function ($q) use ($buscar) {
+
+                    $q->where('codigo', 'like', "%{$buscar}%")
+                    ->orWhere('nombre', 'like', "%{$buscar}%")
+                    ->orWhere('marca', 'like', "%{$buscar}%")
+                    ->orWhere('modelo', 'like', "%{$buscar}%")
+                    ->orWhere('serie', 'like', "%{$buscar}%")
+
+                    // Buscar también por categoría
+                    ->orWhereHas('categoria', function ($categoria) use ($buscar) {
+                        $categoria->withTrashed()
+                            ->where('nombre', 'like', "%{$buscar}%");
+                    });
+                });
+            })
+
+            // Ordenar desde el producto más reciente
+            ->orderBy('id', 'desc')
+
+            // Mostrar solamente 10 productos por página
+            ->paginate(10)
+
+            // Mantener el texto buscado al cambiar de página
+            ->withQueryString();
+
+        // Enviar los datos a la vista
+        return view('admin.productos.index', compact('productos', 'buscar'));
+    }
+    
+    public function exportarCsv(Request $request)
+    {
+        $buscar = trim((string) $request->input('buscar', ''));
+
+        $query = Producto::withTrashed()
+            ->with(['categoria' => function ($query) {
+                $query->withTrashed();
+            }])
+            ->when($buscar !== '', function ($query) use ($buscar) {
+                $query->where(function ($q) use ($buscar) {
+                    $q->where('codigo', 'like', "%{$buscar}%")
+                    ->orWhere('nombre', 'like', "%{$buscar}%")
+                    ->orWhere('marca', 'like', "%{$buscar}%")
+                    ->orWhere('modelo', 'like', "%{$buscar}%")
+                    ->orWhere('serie', 'like', "%{$buscar}%")
+                    ->orWhereHas('categoria', function ($categoria) use ($buscar) {
+                        $categoria->withTrashed()
+                            ->where('nombre', 'like', "%{$buscar}%");
+                    });
+                });
+            })
+            ->orderBy('id', 'desc');
+
+        $nombreArchivo = 'inventario_the_game_' . date('Y-m-d_H-i-s') . '.csv';
+
+        return response()->streamDownload(function () use ($query) {
+
+            $archivo = fopen('php://output', 'w');
+
+            // BOM UTF-8 para mostrar correctamente tildes y ñ en Excel
+            fwrite($archivo, "\xEF\xBB\xBF");
+
+            // Encabezados del archivo CSV
+            fputcsv($archivo, [
+                'Nro',
+                'Codigo',
+                'Nombre',
+                'Categoria',
+                'Marca',
+                'Modelo',
+                'Serie',
+                'Stock',
+                'Estado'
+            ], ';');
+
+            $numero = 1;
+
+            foreach ($query->cursor() as $producto) {
+
+                $estado = ($producto->deleted_at ||
+                        $producto->estado === 'Inactivo')
+                    ? 'Inactivo'
+                    : 'Activo';
+
+                fputcsv($archivo, [
+                    $numero++,
+                    $producto->codigo ?? '',
+                    $producto->nombre,
+                    $producto->categoria?->nombre ?? 'N/A',
+                    $producto->marca ?? '',
+                    $producto->modelo ?? '',
+                    $producto->serie ?? '',
+                    $producto->stock,
+                    $estado
+                ], ';');
+            }
+
+            fclose($archivo);
+
+        }, $nombreArchivo, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
     }
 
     public function create()
