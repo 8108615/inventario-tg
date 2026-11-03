@@ -35,17 +35,45 @@ Route::put('/admin/usuario/{id}', [App\Http\Controllers\UsuarioController::class
 Route::delete('/admin/usuario/{id}', [App\Http\Controllers\UsuarioController::class, 'destroy'])->name('admin.usuarios.destroy')->middleware(['auth', 'permission:Eliminar Usuario']);
 
 // Rutas para Categorías
+// Listado de categorías
 Route::get('/admin/categorias', [App\Http\Controllers\CategoriaController::class, 'index'])->name('admin.categorias.index')->middleware(['auth', 'permission:Listado de Categorías']);
+// Exportar categorías a CSV
+Route::get('/admin/categorias/exportar/csv', [App\Http\Controllers\CategoriaController::class, 'exportarCsv'])->name('admin.categorias.exportar.csv')->middleware(['auth', 'permission:Listado de Categorías']);
+// Exportar categorías a Excel
+Route::get('/admin/categorias/exportar/excel', [App\Http\Controllers\CategoriaController::class, 'exportarExcel'])->name('admin.categorias.exportar.excel')->middleware(['auth', 'permission:Listado de Categorías']);
+// Exportar categorías a PDF
+Route::get('/admin/categorias/exportar/pdf', [App\Http\Controllers\CategoriaController::class, 'exportarPdf'])->name('admin.categorias.exportar.pdf')->middleware(['auth', 'permission:Listado de Categorías']);
+// Copiar categorías al portapapeles
+Route::get('/admin/categorias/copiar', [App\Http\Controllers\CategoriaController::class, 'copiarCategorias'])->name('admin.categorias.copiar')->middleware(['auth', 'permission:Listado de Categorías']);
+// Crear categoría
 Route::get('/admin/categorias/create', [App\Http\Controllers\CategoriaController::class, 'create'])->name('admin.categorias.create')->middleware(['auth', 'permission:Crear Categoría']);
+// Guardar categoría
 Route::post('/admin/categorias', [App\Http\Controllers\CategoriaController::class, 'store'])->name('admin.categorias.store')->middleware(['auth', 'permission:Crear Categoría']);
+// Restaurar categoría
 Route::post('/admin/categoria/{id}/restaurar', [App\Http\Controllers\CategoriaController::class, 'restaurar'])->name('admin.categorias.restaurar')->middleware(['auth', 'permission:Restaurar Categoría']);
+// Ver categoría
 Route::get('/admin/categoria/{id}', [App\Http\Controllers\CategoriaController::class, 'show'])->name('admin.categorias.show')->middleware(['auth', 'permission:Ver Categoría']);
+// Editar categoría
 Route::get('/admin/categoria/{id}/edit', [App\Http\Controllers\CategoriaController::class, 'edit'])->name('admin.categorias.edit')->middleware(['auth', 'permission:Editar Categoría']);
+// Actualizar categoría
 Route::put('/admin/categoria/{id}', [App\Http\Controllers\CategoriaController::class, 'update'])->name('admin.categorias.update')->middleware(['auth', 'permission:Editar Categoría']);
+// Eliminar categoría
 Route::delete('/admin/categoria/{id}', [App\Http\Controllers\CategoriaController::class, 'destroy'])->name('admin.categorias.destroy')->middleware(['auth', 'permission:Eliminar Categoría']);
 
 // Rutas para Productos
 Route::get('/admin/productos', [App\Http\Controllers\ProductoController::class, 'index'])->name('admin.productos.index')->middleware(['auth', 'permission:Listado de Productos']);
+// Exportar productos a CSV
+Route::get('/admin/productos/exportar/csv', [App\Http\Controllers\ProductoController::class, 'exportarCsv'])->name('admin.productos.exportar.csv')->middleware(['auth', 'permission:Listado de Productos']);
+ // Exportar productos a Excel (.xlsx)
+Route::get('/admin/productos/exportar/excel', [App\Http\Controllers\ProductoController::class, 'exportarExcel'])->name('admin.productos.exportar.excel')->middleware(['auth', 'permission:Listado de Productos']);
+ // Exportar productos a PDF
+Route::get('/admin/productos/exportar/pdf', [App\Http\Controllers\ProductoController::class, 'exportarPdf'])->name('admin.productos.exportar.pdf')->middleware(['auth', 'permission:Listado de Productos']);
+
+ // Copiar productos al portapapeles
+Route::get('/admin/productos/copiar', [\App\Http\Controllers\ProductoController::class, 'copiarProductos'])
+    ->name('admin.productos.copiar')
+    ->middleware(['auth', 'permission:Listado de Productos']);
+
 Route::get('/admin/productos/create', [App\Http\Controllers\ProductoController::class, 'create'])->name('admin.productos.create')->middleware(['auth', 'permission:Crear Producto']);
 Route::post('/admin/productos', [App\Http\Controllers\ProductoController::class, 'store'])->name('admin.productos.store')->middleware(['auth', 'permission:Crear Producto']);
 // Ruta AJAX para Yajra DataTables de Productos (requiere permiso de listado)

@@ -11,10 +11,15 @@
             </flux:sidebar.header>
 
             <flux:sidebar.nav>
-                <flux:sidebar.group :heading="__('Platform')" class="grid">
-                    <flux:sidebar.item icon="home" :href="route('dashboard')" :current="request()->routeIs('dashboard')" wire:navigate>
-                        {{ __('Dashboard') }}
-                    </flux:sidebar.item>
+                <flux:sidebar.group heading="Menú principal" class="grid">
+                    <flux:navlist.item
+                        icon="squares-2x2"
+                        :href="route('dashboard')"
+                        :current="request()->routeIs('dashboard') || request()->is('admin')"
+                        wire:navigate
+                    >
+                        Dashboard
+                    </flux:navlist.item>
 
                     @can('Listado de Roles')
                         <flux:navlist.item icon="shield-check" :href="route('admin.roles.index')"
@@ -80,7 +85,7 @@
 
                     <flux:menu.radio.group>
                         <flux:menu.item :href="route('profile.edit')" icon="cog" wire:navigate>
-                            {{ __('Settings') }}
+                            Configuración
                         </flux:menu.item>
                     </flux:menu.radio.group>
 
@@ -95,7 +100,7 @@
                             class="w-full cursor-pointer"
                             data-test="logout-button"
                         >
-                            {{ __('Log out') }}
+                            Cerrar sesión
                         </flux:menu.item>
                     </form>
                 </flux:menu>
@@ -140,7 +145,7 @@
 
                     <flux:menu.radio.group>
                         <flux:menu.item :href="route('profile.edit')" icon="cog" wire:navigate>
-                            {{ __('Settings') }}
+                            Configuración
                         </flux:menu.item>
                     </flux:menu.radio.group>
 
@@ -155,7 +160,7 @@
                             class="w-full cursor-pointer"
                             data-test="logout-button"
                         >
-                            {{ __('Log out') }}
+                            Cerrar sesión
                         </flux:menu.item>
                     </form>
                 </flux:menu>

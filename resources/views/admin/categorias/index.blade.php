@@ -1,231 +1,463 @@
+
 <x-layouts::app title="Listado de Categorías">
-    <!-- Cargar estilos y scripts necesarios para DataTables y botones de exportación -->
-    @push('styles')
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.tailwindcss.min.css">
-    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.tailwindcss.min.css">
-    @endpush
 
-    <div class="relative mb-6 w-full">
-        <flux:heading size="xl" level="1">Listado de categorías</flux:heading>
-        <br>
-        <flux:separator variant="subtle" />
+    {{-- Encabezado --}}
+    <div class="relative mb-4 w-full">
+        <flux:heading size="xl" level="1">
+            Listado de categorías
+        </flux:heading>
+
+        <div class="mt-4">
+            <flux:separator variant="subtle" />
+        </div>
     </div>
 
-    <div class="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
-        <!-- Botones de Exportación (Copy, Excel, CSV, PDF) -->
-        <div id="export-buttons-container" class="flex flex-wrap gap-2"></div>
+    {{-- Botones superiores --}}
+    <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
 
-        <!-- Botón Crear Nuevo -->
+        <div class="flex flex-wrap items-center gap-2">
+            {{-- ============================================ --}}
+            {{-- EXPORTAR CSV --}}
+            {{-- ============================================ --}}
+            <a href="{{ route('admin.categorias.exportar.csv', ['buscar' => $buscar]) }}"
+                class="inline-flex items-center gap-2 rounded-lg
+                    bg-blue-600 hover:bg-blue-700
+                    px-4 py-2 text-sm font-semibold text-white transition">
+
+                <i class="fas fa-file-csv"></i>
+                CSV
+            </a>
+
+            {{-- ============================================ --}}
+            {{-- EXPORTAR EXCEL --}}
+            {{-- ============================================ --}}
+            <a href="{{ route('admin.categorias.exportar.excel', ['buscar' => $buscar]) }}"
+                class="inline-flex items-center gap-2 rounded-lg
+                    bg-green-600 hover:bg-green-700
+                    px-4 py-2 text-sm font-semibold text-white transition">
+
+                <i class="fas fa-file-excel"></i>
+                Excel
+            </a>
+
+            {{-- ============================================ --}}
+            {{-- EXPORTAR PDF --}}
+            {{-- ============================================ --}}
+            <a href="{{ route('admin.categorias.exportar.pdf', ['buscar' => $buscar]) }}"
+                class="inline-flex items-center gap-2 rounded-lg
+                    bg-red-600 hover:bg-red-700
+                    px-4 py-2 text-sm font-semibold text-white transition">
+
+                <i class="fas fa-file-pdf"></i>
+                PDF
+            </a>
+
+
+            {{-- Copiar categorías --}}
+            <button
+                type="button"
+                id="btnCopiarCategorias"
+                data-url="{{ route('admin.categorias.copiar', ['buscar' => $buscar]) }}"
+                class="inline-flex items-center gap-2 rounded-lg bg-gray-600 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-700 transition"
+            >
+                <i class="fas fa-copy"></i>
+                Copiar
+            </button>
+
+        </div>
+
         @can('Crear Categoría')
-            <div>
-                <a href="{{ route('admin.categorias.create') }}"
-                    class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg transition flex items-center gap-2">
-                    <i class="fas fa-plus mr-2"></i>
-                    Crear nuevo
-                </a>
-            </div>
+            <a href="{{ route('admin.categorias.create') }}"
+                class="inline-flex items-center gap-2 rounded-lg bg-blue-500 px-4 py-2 text-white font-semibold hover:bg-blue-600 transition">
+                <i class="fas fa-plus"></i>
+                Crear nuevo
+            </a>
         @endcan
+
     </div>
 
-    <!-- Tabla con IDs y clases para DataTables -->
-    <div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 mt-2 p-4">
-        <table id="tablaCategorias" class="min-w-full border-collapse">
+    {{-- Mostrar entradas y buscar --}}
+    <form method="GET"
+        action="{{ route('admin.categorias.index') }}"
+        class="flex flex-wrap items-end justify-between gap-3 mb-3">
+
+        <div class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200">
+            <label for="por_pagina">Mostrar</label>
+
+            <select id="por_pagina"
+                name="por_pagina"
+                onchange="this.form.submit()"
+                class="rounded-lg border border-gray-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-gray-900 dark:text-gray-100 px-3 py-2">
+
+                @foreach ([10, 25, 50, 100] as $cantidad)
+                    <option value="{{ $cantidad }}"
+                        {{ $porPagina == $cantidad ? 'selected' : '' }}>
+                        {{ $cantidad }}
+                    </option>
+                @endforeach
+
+            </select>
+
+            <span>entradas</span>
+        </div>
+
+        <div class="flex flex-wrap items-end gap-2">
+
+            <div class="w-full sm:w-56">
+                <label for="buscar-categoria"
+                    class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
+                    Buscar:
+                </label>
+
+                <input
+                    id="buscar-categoria"
+                    name="buscar"
+                    type="search"
+                    value="{{ $buscar }}"
+                    placeholder="Buscar categoría..."
+                    class="w-full rounded-lg border border-gray-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-gray-900 dark:text-gray-100 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+
+            <button type="submit"
+                class="rounded-lg bg-blue-600 hover:bg-blue-700 px-4 py-2 text-white font-semibold transition">
+                <i class="fas fa-search mr-1"></i>
+                Buscar
+            </button>
+
+            @if ($buscar !== '')
+                <a href="{{ route('admin.categorias.index', ['por_pagina' => $porPagina]) }}"
+                    class="rounded-lg bg-zinc-500 hover:bg-zinc-600 px-4 py-2 text-white font-semibold transition">
+                    Limpiar
+                </a>
+            @endif
+
+        </div>
+
+    </form>
+
+    {{-- Tabla --}}
+    <div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-3">
+
+        <table class="min-w-full border-collapse">
+
             <thead class="bg-gray-50 dark:bg-zinc-900 text-center">
                 <tr>
-                    <th class="px-6 py-3 border-x border-b border-gray-200 dark:border-zinc-700 text-xs font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wider">Nro</th>
-                    <th class="px-6 py-3 border-x border-b border-gray-200 dark:border-zinc-700 text-xs font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wider">Nombre</th>
-                    <th class="px-6 py-3 border-x border-b border-gray-200 dark:border-zinc-700 text-xs font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wider">Descripción</th>
-                    <th class="px-6 py-3 border-x border-b border-gray-200 dark:border-zinc-700 text-xs font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wider">Estado</th>
-                    <th class="px-6 py-3 border-x border-b border-gray-200 dark:border-zinc-700 text-xs font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wider">Acciones</th>
+                    @foreach (['NRO', 'NOMBRE', 'DESCRIPCIÓN', 'ESTADO', 'ACCIONES'] as $titulo)
+                        <th class="px-4 py-3 border border-gray-200 dark:border-zinc-700 text-xs font-bold text-gray-500 dark:text-gray-300 uppercase">
+                            {{ $titulo }}
+                        </th>
+                    @endforeach
                 </tr>
             </thead>
+
             <tbody class="bg-white dark:bg-zinc-800">
-                @foreach ($categorias as $categoria)
+
+                @forelse ($categorias as $categoria)
+
                     <tr class="even:bg-slate-50 odd:bg-white dark:even:bg-zinc-700/20 dark:odd:bg-zinc-800 hover:bg-blue-50 dark:hover:bg-zinc-700/50 transition">
-                        <td class="px-3 py-2 border border-gray-200 dark:border-zinc-700 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100 text-center">
-                            {{ $loop->iteration }}
+
+                        <td class="px-3 py-2 border border-gray-200 dark:border-zinc-700 text-sm text-center text-gray-900 dark:text-gray-100">
+                            {{ $categorias->firstItem() + $loop->index }}
                         </td>
-                        <td class="px-3 py-2 border border-gray-200 dark:border-zinc-700 whitespace-nowrap text-sm font-semibold text-gray-900 dark:text-gray-100">
+
+                        <td class="px-3 py-2 border border-gray-200 dark:border-zinc-700 text-sm font-semibold text-gray-900 dark:text-gray-100">
                             {{ $categoria->nombre }}
                         </td>
+
                         <td class="px-3 py-2 border border-gray-200 dark:border-zinc-700 text-sm text-gray-900 dark:text-gray-100">
                             {{ $categoria->descripcion ?? 'Sin descripción' }}
                         </td>
-                        <td class="text-center px-3 py-2 border border-gray-200 dark:border-zinc-700 whitespace-nowrap text-sm">
-                            @if ($categoria->deleted_at)
-                                <span class="px-3 py-1 inline-flex text-xs font-semibold rounded-full bg-red-500 text-white border border-red-200">
+
+                        <td class="px-3 py-2 border border-gray-200 dark:border-zinc-700 text-center text-sm">
+
+                            @if ($categoria->deleted_at || $categoria->estado === 'Inactivo')
+                                <span class="inline-flex rounded-full bg-red-500 px-3 py-1 text-xs font-semibold text-white">
                                     Inactivo
                                 </span>
                             @else
-                                <span class="px-3 py-1 inline-flex text-xs font-semibold rounded-full bg-emerald-500 text-white border border-emerald-200">
+                                <span class="inline-flex rounded-full bg-emerald-500 px-3 py-1 text-xs font-semibold text-white">
                                     Activo
                                 </span>
                             @endif
+
                         </td>
-                        <td class="px-3 py-2 border border-gray-200 dark:border-zinc-700 whitespace-nowrap text-center">
+
+                        <td class="px-3 py-2 border border-gray-200 dark:border-zinc-700 text-center">
+
                             @if ($categoria->deleted_at)
+
                                 @can('Restaurar Categoría')
-                                    <form action="{{ route('admin.categorias.restaurar', $categoria->id) }}" method="post" id="miFormularioRestaurar{{ $categoria->id }}">
+                                    <form method="POST"
+                                        action="{{ route('admin.categorias.restaurar', $categoria->id) }}"
+                                        class="form-confirmar inline-block"
+                                        data-accion="restaurar"
+                                        data-nombre="{{ $categoria->nombre }}">
                                         @csrf
+
                                         <button type="submit"
-                                            class="inline-flex items-center px-3 py-1.5 bg-yellow-500 hover:bg-yellow-600 text-white text-xs font-semibold rounded transition"
-                                            onclick="preguntarRestaurar{{ $categoria->id }}(event)">
-                                            <i class="fas fa-undo-alt mr-1"></i> Restaurar
+                                            class="rounded bg-yellow-500 hover:bg-yellow-600 px-3 py-1.5 text-xs font-semibold text-white">
+                                            <i class="fas fa-undo-alt mr-1"></i>
+                                            Restaurar
                                         </button>
                                     </form>
-                                    <script>
-                                        function preguntarRestaurar{{ $categoria->id }}(event) {
-                                            event.preventDefault();
-                                            Swal.fire({
-                                                title: '¿Desea restaurar esta categoría?',
-                                                icon: 'question',
-                                                showDenyButton: true,
-                                                confirmButtonText: 'Restaurar',
-                                                confirmButtonColor: '#a68d1e',
-                                                denyButtonText: 'Cancelar',
-                                            }).then((result) => {
-                                                if (result.isConfirmed) {
-                                                    document.getElementById('miFormularioRestaurar{{ $categoria->id }}').submit();
-                                                }
-                                            });
-                                        }
-                                    </script>
                                 @endcan
+
                             @else
-                                <div class="flex justify-center gap-2">
+
+                                <div class="flex flex-wrap justify-center gap-2">
+
                                     @can('Ver Categoría')
                                         <a href="{{ route('admin.categorias.show', $categoria->id) }}"
-                                            class="inline-flex items-center px-3 py-1.5 bg-zinc-500 hover:bg-zinc-600 text-white text-xs font-semibold rounded transition shadow-sm">
+                                            class="rounded bg-zinc-500 hover:bg-zinc-600 px-3 py-1.5 text-xs font-semibold text-white">
                                             <i class="fas fa-eye mr-1"></i> Ver
                                         </a>
                                     @endcan
 
                                     @can('Editar Categoría')
                                         <a href="{{ route('admin.categorias.edit', $categoria->id) }}"
-                                            class="inline-flex items-center px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white text-xs font-semibold rounded transition">
+                                            class="rounded bg-green-500 hover:bg-green-600 px-3 py-1.5 text-xs font-semibold text-white">
                                             <i class="fas fa-pencil-alt mr-1"></i> Editar
                                         </a>
                                     @endcan
 
                                     @can('Eliminar Categoría')
-                                        <form action="{{ route('admin.categorias.destroy', $categoria->id) }}" method="post" id="miFormularioEliminar{{ $categoria->id }}">
+                                        <form method="POST"
+                                            action="{{ route('admin.categorias.destroy', $categoria->id) }}"
+                                            class="form-confirmar"
+                                            data-accion="eliminar"
+                                            data-nombre="{{ $categoria->nombre }}">
                                             @csrf
                                             @method('DELETE')
+
                                             <button type="submit"
-                                                class="inline-flex items-center px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-semibold rounded transition cursor-pointer"
-                                                onclick="preguntarEliminar{{ $categoria->id }}(event)">
-                                                <i class="fas fa-trash-alt mr-1"></i> Eliminar
+                                                class="rounded bg-red-500 hover:bg-red-600 px-3 py-1.5 text-xs font-semibold text-white">
+                                                <i class="fas fa-trash-alt mr-1"></i>
+                                                Eliminar
                                             </button>
                                         </form>
-
-                                        <script>
-                                            function preguntarEliminar{{ $categoria->id }}(event) {
-                                                event.preventDefault();
-                                                Swal.fire({
-                                                    title: '¿Desea eliminar esta categoría?',
-                                                    icon: 'question',
-                                                    showDenyButton: true,
-                                                    confirmButtonText: 'Eliminar',
-                                                    confirmButtonColor: '#a5161d',
-                                                    denyButtonText: 'Cancelar',
-                                                }).then((result) => {
-                                                    if (result.isConfirmed) {
-                                                        document.getElementById('miFormularioEliminar{{ $categoria->id }}').submit();
-                                                    }
-                                                });
-                                            }
-                                        </script>
                                     @endcan
+
                                 </div>
+
                             @endif
+
+                        </td>
+
+                    </tr>
+
+                @empty
+
+                    <tr>
+                        <td colspan="5"
+                            class="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
+                            No se encontraron categorías.
                         </td>
                     </tr>
-                @endforeach
+
+                @endforelse
+
             </tbody>
+
         </table>
+
     </div>
 
-    <!-- Scripts necesarios para inicializar DataTables y los botones en español -->
+    {{-- Información y paginación --}}
+    <div class="flex flex-wrap items-center justify-between gap-4 mt-4">
+
+        <div class="text-sm text-gray-600 dark:text-gray-300">
+            @if ($categorias->total() > 0)
+                Mostrando {{ $categorias->firstItem() }}
+                a {{ $categorias->lastItem() }}
+                de {{ number_format($categorias->total(), 0, ',', '.') }}
+                categorías
+            @else
+                Mostrando 0 categorías
+            @endif
+        </div>
+
+        <div>
+            {{ $categorias->links('vendor.pagination.tailwind') }}
+        </div>
+
+    </div>
+
+
+    {{-- Confirmaciones y copiar categorías --}}
     @push('scripts')
-    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.tailwindcss.min.js"></script>
-    <script src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
-    <script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.tailwindcss.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js"></script>
-    <script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.html5.min.js"></script>
-    <script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.print.min.js"></script>
-
-    <script>
-        $(document).ready(function() {
-            var table = $('#tablaCategorias').DataTable({
-                responsive: true,
-                pageLength: 10,
-                language: {
-                    "decimal": "",
-                    "emptyTable": "No hay información disponible en la tabla",
-                    "info": "Mostrando _START_ a _END_ de _TOTAL_ entradas",
-                    "infoEmpty": "Mostrando 0 to 0 of 0 entradas",
-                    "infoFiltered": "(filtrado de _MAX_ entradas totales)",
-                    "lengthMenu": "Mostrar _MENU_ entradas",
-                    "loadingRecords": "Cargando...",
-                    "processing": "Procesando...",
-                    "search": "Buscar:",
-                    "zeroRecords": "No se encontraron registros coincidentes",
-                    "paginate": {
-                        "first": "Primero",
-                        "last": "Último",
-                        "next": "Siguiente",
-                        "previous": "Anterior"
-                    }
-                },
-                dom: '<"flex flex-col md:flex-row justify-between items-center mb-4"<"mb-2 md:mb-0"l><"flex items-center gap-2"f>>rt<"flex flex-col md:flex-row justify-between items-center mt-4"ip>',
-                buttons: [
-                    {
-                        extend: 'copy',
-                        text: '<i class="fas fa-copy mr-1"></i> Copiar',
-                        className: 'px-3 py-1.5 bg-gray-600 hover:bg-gray-700 text-white text-xs font-semibold rounded shadow',
-                        exportOptions: { columns: [0, 1, 2, 3] } // Exporta solo Nro, Nombre, Descripción y Estado
-                    },
-                    {
-                        extend: 'excel',
-                        text: '<i class="fas fa-file-excel mr-1"></i> Excel',
-                        className: 'px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded shadow',
-                        exportOptions: { columns: [0, 1, 2, 3] }
-                    },
-                    {
-                        extend: 'csv',
-                        text: '<i class="fas fa-file-csv mr-1"></i> CSV',
-                        className: 'px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded shadow',
-                        exportOptions: { columns: [0, 1, 2, 3] }
-                    },
-                    {
-                        extend: 'pdf',
-                        text: '<i class="fas fa-file-pdf mr-1"></i> PDF',
-                        className: 'px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded shadow',
-                        exportOptions: { columns: [0, 1, 2, 3] }
-                    }
-                ]
-            });
-
-            // Mover los botones al contenedor personalizado arriba de la tabla
-            table.buttons().container().appendTo('#export-buttons-container');
-        });
-    </script>
-    @endpush
-
-    @if (session('success'))
         <script>
-            Swal.fire({
-                icon: 'success',
-                title: '¡Éxito!',
-                text: '{{ session('success') }}',
-                confirmButtonColor: '#3b82f6',
-                timer: 3000,
-                timerProgressBar: true
+            document.addEventListener('DOMContentLoaded', function () {
+
+                // ============================================
+                // 1. CONFIRMACIONES: ELIMINAR Y RESTAURAR
+                // ============================================
+
+                document.querySelectorAll('.form-confirmar').forEach(function (formulario) {
+
+                    formulario.addEventListener('submit', function (evento) {
+                        evento.preventDefault();
+
+                        const accion = formulario.dataset.accion;
+                        const nombre = formulario.dataset.nombre;
+
+                        const titulo = accion === 'restaurar'
+                            ? '¿Desea restaurar esta categoría?'
+                            : '¿Desea eliminar esta categoría?';
+
+                        if (typeof Swal === 'undefined') {
+                            if (confirm(titulo + '\n' + nombre)) {
+                                formulario.submit();
+                            }
+                            return;
+                        }
+
+                        Swal.fire({
+                            title: titulo,
+                            text: nombre,
+                            icon: 'question',
+                            showCancelButton: true,
+                            confirmButtonText: accion === 'restaurar'
+                                ? 'Restaurar'
+                                : 'Eliminar',
+                            cancelButtonText: 'Cancelar',
+                            confirmButtonColor: accion === 'restaurar'
+                                ? '#d97706'
+                                : '#dc2626'
+                        }).then(function (resultado) {
+                            if (resultado.isConfirmed) {
+                                formulario.submit();
+                            }
+                        });
+                    });
+
+                });
+
+
+                // ============================================
+                // 2. COPIAR CATEGORÍAS AL PORTAPAPELES
+                // ============================================
+
+                const boton = document.getElementById('btnCopiarCategorias');
+
+                if (boton) {
+
+                    boton.addEventListener('click', async function () {
+
+                        try {
+
+                            const respuesta = await fetch(boton.dataset.url, {
+                                credentials: 'same-origin',
+                                headers: {
+                                    'Accept': 'text/plain'
+                                }
+                            });
+
+                            if (!respuesta.ok) {
+                                throw new Error('Error HTTP: ' + respuesta.status);
+                            }
+
+                            const texto = await respuesta.text();
+
+                            // Método moderno: HTTPS o contexto seguro
+                            if (navigator.clipboard && window.isSecureContext) {
+
+                                await navigator.clipboard.writeText(texto);
+
+                            } else {
+
+                                // Método alternativo para HTTP local
+                                const textarea = document.createElement('textarea');
+
+                                textarea.value = texto;
+                                textarea.setAttribute('readonly', '');
+
+                                textarea.style.position = 'fixed';
+                                textarea.style.left = '-9999px';
+                                textarea.style.top = '0';
+
+                                document.body.appendChild(textarea);
+
+                                textarea.focus();
+                                textarea.select();
+
+                                const copiado = document.execCommand('copy');
+
+                                document.body.removeChild(textarea);
+
+                                if (!copiado) {
+                                    throw new Error('El navegador no permitió copiar.');
+                                }
+                            }
+
+                            // Mensaje de éxito
+                            if (typeof Swal !== 'undefined') {
+
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: '¡Categorías copiadas!',
+                                    text: 'Las categorías están listas para pegar en Excel.',
+                                    confirmButtonText: 'Aceptar',
+                                    confirmButtonColor: '#2563eb'
+                                });
+
+                            } else {
+                                alert('¡Categorías copiadas correctamente!');
+                            }
+
+                        } catch (error) {
+
+                            console.error('Error al copiar categorías:', error);
+
+                            if (typeof Swal !== 'undefined') {
+
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Error al copiar',
+                                    text: 'No se pudieron copiar las categorías.',
+                                    confirmButtonText: 'Aceptar'
+                                });
+
+                            } else {
+                                alert('No se pudieron copiar las categorías.');
+                            }
+
+                        }
+
+                    });
+
+                }
+
             });
         </script>
+    @endpush
+
+
+    {{-- ============================================
+        3. MENSAJES DE ÉXITO
+        ============================================ --}}
+
+    @if (session('success'))
+        @push('scripts')
+            <script>
+                document.addEventListener('DOMContentLoaded', function () {
+
+                    if (typeof Swal !== 'undefined') {
+
+                        Swal.fire({
+                            icon: 'success',
+                            title: '¡Éxito!',
+                            text: @json(session('success')),
+                            confirmButtonColor: '#3b82f6',
+                            timer: 3000,
+                            timerProgressBar: true
+                        });
+
+                    }
+
+                });
+            </script>
+        @endpush
     @endif
+
 </x-layouts::app>
+

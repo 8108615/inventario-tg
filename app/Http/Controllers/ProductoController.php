@@ -6,13 +6,29 @@ use App\Models\Producto;
 use App\Models\Categoria;
 use Illuminate\Http\Request;
 use Yajra\DataTables\Facades\DataTables;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class ProductoController extends Controller
 {
+
     public function index(Request $request)
     {
         // Obtener el texto del buscador
         $buscar = trim($request->input('buscar', ''));
+
+        // Obtener la cantidad de productos por página
+        // Por defecto se mostrarán 10 productos
+        $porPagina = (int) $request->input('por_pagina', 10);
+
+        // Permitir únicamente 10, 25, 50 o 100 productos
+        if (!in_array($porPagina, [10, 25, 50, 100], true)) {
+            $porPagina = 10;
+        }
 
         // Consultar productos activos y eliminados
         $productos = Producto::withTrashed()
@@ -41,16 +57,20 @@ class ProductoController extends Controller
             // Ordenar desde el producto más reciente
             ->orderBy('id', 'desc')
 
-            // Mostrar solamente 10 productos por página
-            ->paginate(10)
+            // Mostrar la cantidad seleccionada por página
+            ->paginate($porPagina)
 
-            // Mantener el texto buscado al cambiar de página
+            // Mantener la búsqueda y cantidad al cambiar de página
             ->withQueryString();
 
         // Enviar los datos a la vista
-        return view('admin.productos.index', compact('productos', 'buscar'));
+        return view('admin.productos.index', compact(
+            'productos',
+            'buscar',
+            'porPagina'
+        ));
     }
-    
+
     public function exportarCsv(Request $request)
     {
         $buscar = trim((string) $request->input('buscar', ''));
@@ -98,7 +118,7 @@ class ProductoController extends Controller
 
             $numero = 1;
 
-            foreach ($query->cursor() as $producto) {
+            foreach ($query->lazy(200) as $producto) {
 
                 $estado = ($producto->deleted_at ||
                         $producto->estado === 'Inactivo')
@@ -123,6 +143,273 @@ class ProductoController extends Controller
         }, $nombreArchivo, [
             'Content-Type' => 'text/csv; charset=UTF-8',
         ]);
+    }
+
+    public function exportarExcel(Request $request)
+    {
+        $buscar = trim((string) $request->input('buscar', ''));
+
+        $query = Producto::withTrashed()
+            ->with(['categoria' => function ($query) {
+                $query->withTrashed();
+            }])
+            ->when($buscar !== '', function ($query) use ($buscar) {
+                $query->where(function ($q) use ($buscar) {
+                    $q->where('codigo', 'like', "%{$buscar}%")
+                    ->orWhere('nombre', 'like', "%{$buscar}%")
+                    ->orWhere('marca', 'like', "%{$buscar}%")
+                    ->orWhere('modelo', 'like', "%{$buscar}%")
+                    ->orWhere('serie', 'like', "%{$buscar}%")
+                    ->orWhereHas('categoria', function ($categoria) use ($buscar) {
+                        $categoria->withTrashed()
+                            ->where('nombre', 'like', "%{$buscar}%");
+                    });
+                });
+            })
+            ->orderBy('id', 'desc');
+
+        $excel = new Spreadsheet();
+        $hoja = $excel->getActiveSheet();
+        $hoja->setTitle('Inventario');
+
+        // Título principal
+        $hoja->mergeCells('A1:I1');
+        $hoja->setCellValue('A1', 'THE GAME SRL - INVENTARIO DE PRODUCTOS');
+
+        $hoja->getStyle('A1:I1')->getFont()
+            ->setBold(true)
+            ->setSize(16)
+            ->getColor()->setRGB('FFFFFF');
+
+        $hoja->getStyle('A1:I1')->getFill()
+            ->setFillType(Fill::FILL_SOLID)
+            ->getStartColor()->setRGB('123B73');
+
+        $hoja->getStyle('A1:I1')->getAlignment()
+            ->setHorizontal(Alignment::HORIZONTAL_CENTER);
+
+        $hoja->getRowDimension(1)->setRowHeight(32);
+
+        // Encabezados
+        $encabezados = [
+            'Nro', 'Código', 'Nombre', 'Categoría',
+            'Marca', 'Modelo', 'Serie', 'Stock', 'Estado'
+        ];
+
+        foreach ($encabezados as $indice => $titulo) {
+            $columna = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($indice + 1);
+            $hoja->setCellValue($columna . '3', $titulo);
+        }
+
+        $hoja->getStyle('A3:I3')->getFont()
+            ->setBold(true)
+            ->getColor()->setRGB('FFFFFF');
+
+        $hoja->getStyle('A3:I3')->getFill()
+            ->setFillType(Fill::FILL_SOLID)
+            ->getStartColor()->setRGB('2563EB');
+
+        $hoja->getRowDimension(3)->setRowHeight(24);
+
+        // Registrar todos los productos
+        $fila = 4;
+        $numero = 1;
+
+        foreach ($query->lazy(200) as $producto) {
+
+            $estado = ($producto->deleted_at ||
+                    $producto->estado === 'Inactivo')
+                ? 'Inactivo'
+                : 'Activo';
+
+            $hoja->setCellValue('A' . $fila, $numero++);
+
+            // Conservar los códigos y números de serie como texto
+            $hoja->setCellValueExplicit(
+                'B' . $fila,
+                (string) ($producto->codigo ?? ''),
+                DataType::TYPE_STRING
+            );
+
+            $hoja->setCellValue('C' . $fila, $producto->nombre);
+            $hoja->setCellValue('D' . $fila, $producto->categoria?->nombre ?? 'N/A');
+            $hoja->setCellValue('E' . $fila, $producto->marca ?? '');
+            $hoja->setCellValue('F' . $fila, $producto->modelo ?? '');
+
+            $hoja->setCellValueExplicit(
+                'G' . $fila,
+                (string) ($producto->serie ?? ''),
+                DataType::TYPE_STRING
+            );
+
+            $hoja->setCellValue('H' . $fila, $producto->stock);
+            $hoja->setCellValue('I' . $fila, $estado);
+
+            $fila++;
+        }
+
+        // Filtros y encabezado fijo
+        $ultimaFila = max(3, $fila - 1);
+        $hoja->setAutoFilter('A3:I' . $ultimaFila);
+        $hoja->freezePane('A4');
+
+        // Ancho de columnas
+        $anchos = [
+            'A' => 8,
+            'B' => 22,
+            'C' => 45,
+            'D' => 25,
+            'E' => 22,
+            'F' => 25,
+            'G' => 28,
+            'H' => 12,
+            'I' => 15,
+        ];
+
+        foreach ($anchos as $columna => $ancho) {
+            $hoja->getColumnDimension($columna)->setWidth($ancho);
+        }
+
+        $hoja->getStyle('A3:I' . $ultimaFila)
+            ->getAlignment()
+            ->setVertical(Alignment::VERTICAL_CENTER);
+
+        $nombreArchivo = 'inventario_the_game_' . date('Y-m-d_H-i-s') . '.xlsx';
+
+        $rutaTemporal = tempnam(sys_get_temp_dir(), 'inventario_tg_');
+
+        if ($rutaTemporal === false) {
+            throw new \RuntimeException('No se pudo crear el archivo temporal.');
+        }
+
+        try {
+            $writer = new Xlsx($excel);
+            $writer->save($rutaTemporal);
+
+            return response()->download(
+                $rutaTemporal,
+                $nombreArchivo,
+                ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']
+            )->deleteFileAfterSend(true);
+
+        } catch (\Throwable $e) {
+            if (is_file($rutaTemporal)) {
+                unlink($rutaTemporal);
+            }
+
+            throw $e;
+
+        } finally {
+            $excel->disconnectWorksheets();
+            unset($excel);
+        }
+    }
+
+    public function copiarProductos(Request $request)
+    {
+        $buscar = trim((string) $request->input('buscar', ''));
+
+        $query = Producto::withTrashed()
+            ->with(['categoria' => function ($query) {
+                $query->withTrashed();
+            }])
+            ->when($buscar !== '', function ($query) use ($buscar) {
+                $query->where(function ($q) use ($buscar) {
+                    $q->where('codigo', 'like', "%{$buscar}%")
+                        ->orWhere('nombre', 'like', "%{$buscar}%")
+                        ->orWhere('marca', 'like', "%{$buscar}%")
+                        ->orWhere('modelo', 'like', "%{$buscar}%")
+                        ->orWhere('serie', 'like', "%{$buscar}%")
+                        ->orWhereHas('categoria', function ($categoria) use ($buscar) {
+                            $categoria->withTrashed()
+                                ->where('nombre', 'like', "%{$buscar}%");
+                        });
+                });
+            })
+            ->orderBy('id', 'desc');
+
+        $lineas = [
+            implode("\t", [
+                'Nro', 'Código', 'Nombre', 'Categoría',
+                'Marca', 'Modelo', 'Serie', 'Stock', 'Estado'
+            ])
+        ];
+
+        $numero = 1;
+
+        foreach ($query->lazy(200) as $producto) {
+            $estado = ($producto->deleted_at || $producto->estado === 'Inactivo')
+                ? 'Inactivo'
+                : 'Activo';
+
+            $valores = [
+                $numero++,
+                $producto->codigo ?? '',
+                $producto->nombre,
+                $producto->categoria?->nombre ?? 'N/A',
+                $producto->marca ?? '',
+                $producto->modelo ?? '',
+                $producto->serie ?? '',
+                $producto->stock,
+                $estado,
+            ];
+
+            $valores = array_map(function ($valor) {
+                $texto = str_replace(["\t", "\r", "\n"], ' ', (string) $valor);
+
+                // Evitar que Excel interprete contenido como fórmula.
+                if (preg_match('/^\s*[=+\-@]/u', $texto)) {
+                    $texto = "'" . $texto;
+                }
+
+                return $texto;
+            }, $valores);
+
+            $lineas[] = implode("\t", $valores);
+        }
+
+        return response(implode("\r\n", $lineas))
+            ->header('Content-Type', 'text/plain; charset=UTF-8')
+            ->header('Cache-Control', 'no-store');
+    }
+
+
+    public function exportarPdf(Request $request)
+    {
+        $buscar = trim((string) $request->input('buscar', ''));
+
+        $query = Producto::withTrashed()
+            ->with(['categoria' => function ($query) {
+                $query->withTrashed();
+            }])
+            ->when($buscar !== '', function ($query) use ($buscar) {
+                $query->where(function ($q) use ($buscar) {
+                    $q->where('codigo', 'like', "%{$buscar}%")
+                    ->orWhere('nombre', 'like', "%{$buscar}%")
+                    ->orWhere('marca', 'like', "%{$buscar}%")
+                    ->orWhere('modelo', 'like', "%{$buscar}%")
+                    ->orWhere('serie', 'like', "%{$buscar}%")
+                    ->orWhereHas('categoria', function ($categoria) use ($buscar) {
+                        $categoria->withTrashed()
+                            ->where('nombre', 'like', "%{$buscar}%");
+                    });
+                });
+            })
+            ->orderBy('id', 'desc');
+
+        // Obtener los productos sin aplicar la paginación del listado.
+        $productos = $query->get();
+
+        $pdf = Pdf::loadView('admin.productos.pdf', [
+            'productos' => $productos,
+            'buscar' => $buscar,
+            'fecha' => now()->format('d/m/Y H:i'),
+        ])->setPaper('a4', 'landscape');
+
+        $nombreArchivo = 'inventario_the_game_' .
+            date('Y-m-d_H-i-s') . '.pdf';
+
+        return $pdf->download($nombreArchivo);
     }
 
     public function create()

@@ -1,58 +1,144 @@
 <x-layouts::app title="Listado de Productos">
-    <div class="relative mb-6 w-full">
+    <div class="relative mb-4 w-full">
         <flux:heading size="xl" level="1">Listado de productos</flux:heading>
         <br>
         <flux:separator variant="subtle" />
     </div>
 
-    <div class="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
-        <div class="text-sm text-gray-600 dark:text-gray-300">
-            Inventario: <strong>{{ number_format($productos->total(), 0, ',', '.') }}</strong> productos{{ $buscar !== '' ? ' encontrados' : '' }}
+    {{-- Botones de exportación, copia y crear producto --}}
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
+
+        {{-- Botones a la izquierda --}}
+        <div class="flex flex-wrap items-center gap-2">
+
+            {{-- Exportar CSV --}}
+            <a href="{{ route('admin.productos.exportar.csv', ['buscar' => $buscar]) }}"
+               class="inline-flex items-center gap-2 px-4 py-2
+                      bg-blue-600 hover:bg-blue-700 text-white
+                      font-semibold rounded-lg transition">
+                <i class="fas fa-file-csv"></i>
+                CSV
+            </a>
+
+            {{-- Exportar Excel --}}
+            <a href="{{ route('admin.productos.exportar.excel', ['buscar' => $buscar]) }}"
+               class="inline-flex items-center gap-2 px-4 py-2
+                      bg-green-600 hover:bg-green-700 text-white
+                      font-semibold rounded-lg transition">
+                <i class="fas fa-file-excel"></i>
+                Excel
+            </a>
+
+            {{-- Exportar PDF --}}
+            <a href="{{ route('admin.productos.exportar.pdf', ['buscar' => $buscar]) }}"
+               class="inline-flex items-center gap-2 px-4 py-2
+                      bg-red-600 hover:bg-red-700 text-white
+                      font-semibold rounded-lg transition">
+                <i class="fas fa-file-pdf"></i>
+                PDF
+            </a>
+
+            {{-- Copiar productos --}}
+            <button
+                type="button"
+                id="btnCopiarProductos"
+                data-url="{{ route('admin.productos.copiar', ['buscar' => $buscar]) }}"
+                class="inline-flex items-center gap-2 rounded-lg
+                       bg-gray-600 px-4 py-2 text-sm font-semibold
+                       text-white hover:bg-gray-700 transition">
+                <i class="fas fa-copy"></i>
+                Copiar
+            </button>
+
         </div>
+
+        {{-- Crear producto a la derecha --}}
         @can('Crear Producto')
             <a href="{{ route('admin.productos.create') }}"
-               class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg transition flex items-center gap-2">
-                <i class="fas fa-plus mr-2"></i> Crear nuevo
+               class="inline-flex items-center justify-center gap-2 px-4 py-2
+                      bg-blue-500 hover:bg-blue-600 text-white
+                      font-semibold rounded-lg transition whitespace-nowrap">
+                <i class="fas fa-plus"></i>
+                Crear nuevo
             </a>
         @endcan
+
     </div>
+
 
     <form method="GET"
         action="{{ route('admin.productos.index') }}"
-        class="flex flex-wrap items-end justify-end gap-2 mb-5">
+        class="flex flex-wrap items-end justify-between gap-3 mb-3">
 
-        <div class="w-full sm:w-56">
-            <label for="buscar-producto"
-                class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
-                Buscar:
+        {{-- Selector de cantidad de productos --}}
+        <div class="flex items-center gap-2">
+            <label for="por_pagina"
+                class="text-sm text-gray-700 dark:text-gray-200">
+                Mostrar
             </label>
 
-            <input
-                id="buscar-producto"
-                name="buscar"
-                type="search"
-                value="{{ $buscar }}"
-                placeholder="Buscar producto..."
-                class="w-full rounded-lg border border-gray-300
+            <select
+                id="por_pagina"
+                name="por_pagina"
+                onchange="this.form.submit()"
+                class="rounded-lg border border-gray-300
                     dark:border-zinc-600 bg-white dark:bg-zinc-800
                     text-gray-900 dark:text-gray-100
                     px-3 py-2 focus:outline-none
                     focus:ring-2 focus:ring-blue-500">
+
+                @foreach ([10, 25, 50, 100] as $cantidad)
+                    <option value="{{ $cantidad }}"
+                        {{ $porPagina == $cantidad ? 'selected' : '' }}>
+                        {{ $cantidad }}
+                    </option>
+                @endforeach
+
+            </select>
+
+            <span class="text-sm text-gray-700 dark:text-gray-200">
+                entradas
+            </span>
         </div>
 
-        <button type="submit"
-                class="px-4 py-2 bg-blue-600 hover:bg-blue-700
-                    text-white font-semibold rounded-lg transition">
-            <i class="fas fa-search mr-1"></i> Buscar
-        </button>
+        {{-- Buscador de productos --}}
+        <div class="flex flex-wrap items-end gap-2">
 
-        @if ($buscar !== '')
-            <a href="{{ route('admin.productos.index') }}"
-            class="px-4 py-2 bg-zinc-500 hover:bg-zinc-600
-                    text-white font-semibold rounded-lg transition">
-                Limpiar
-            </a>
-        @endif
+            <div class="w-full sm:w-56">
+                <label for="buscar-producto"
+                    class="block text-sm font-medium
+                            text-gray-700 dark:text-gray-200 mb-1">
+                    Buscar:
+                </label>
+
+                <input
+                    id="buscar-producto"
+                    name="buscar"
+                    type="search"
+                    value="{{ $buscar }}"
+                    placeholder="Buscar producto..."
+                    class="w-full rounded-lg border border-gray-300
+                        dark:border-zinc-600 bg-white dark:bg-zinc-800
+                        text-gray-900 dark:text-gray-100
+                        px-3 py-2 focus:outline-none
+                        focus:ring-2 focus:ring-blue-500">
+            </div>
+
+            <button type="submit"
+                    class="px-4 py-2 bg-blue-600 hover:bg-blue-700
+                        text-white font-semibold rounded-lg transition">
+                <i class="fas fa-search mr-1"></i> Buscar
+            </button>
+
+            @if ($buscar !== '')
+                <a href="{{ route('admin.productos.index', ['por_pagina' => $porPagina]) }}"
+                class="px-4 py-2 bg-zinc-500 hover:bg-zinc-600
+                        text-white font-semibold rounded-lg transition">
+                    Limpiar
+                </a>
+            @endif
+
+        </div>
 
     </form>
 
@@ -162,6 +248,77 @@
                     if (resultado.isConfirmed) HTMLFormElement.prototype.submit.call(formulario);
                 });
             });
+
+            document.getElementById('btnCopiarProductos')?.addEventListener('click', async function () {
+                const boton = this;
+                const textoOriginal = boton.innerHTML;
+
+                boton.disabled = true;
+                boton.innerHTML = 'Copiando...';
+
+                try {
+                    const respuesta = await fetch(boton.dataset.url, {
+                        credentials: 'same-origin',
+                        headers: {
+                            'Accept': 'text/plain'
+                        }
+                    });
+
+                    if (!respuesta.ok) {
+                        throw new Error('No se pudieron obtener los productos.');
+                    }
+
+                    const contenido = await respuesta.text();
+
+                    if (navigator.clipboard && window.isSecureContext) {
+                        await navigator.clipboard.writeText(contenido);
+                    } else {
+                        const area = document.createElement('textarea');
+                        area.value = contenido;
+                        area.style.position = 'fixed';
+                        area.style.left = '-9999px';
+                        document.body.appendChild(area);
+                        area.focus();
+                        area.select();
+
+                        const copiado = document.execCommand('copy');
+                        area.remove();
+
+                        if (!copiado) {
+                            throw new Error('El navegador no permitió copiar.');
+                        }
+                    }
+
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'success',
+                            title: '¡Productos copiados!',
+                            text: 'Los productos están listos para pegar en Excel.',
+                            timer: 2200,
+                            showConfirmButton: false
+                        });
+                    } else {
+                        alert('¡Productos copiados correctamente!');
+                    }
+
+                } catch (error) {
+                    console.error(error);
+
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error al copiar',
+                            text: error.message
+                        });
+                    } else {
+                        alert(error.message);
+                    }
+                } finally {
+                    boton.disabled = false;
+                    boton.innerHTML = textoOriginal;
+                }
+            });
+
         </script>
     @endpush
 </x-layouts::app>

@@ -10,13 +10,25 @@ class AdminController extends Controller
 {
     public function index()
     {
-        // Estadísticas generales de productos
-        $totalProductos = Producto::count();
+        // ========================================
+        // ESTADÍSTICAS GENERALES DE PRODUCTOS
+        // ========================================
 
+        // Total de productos registrados,
+        // incluyendo los eliminados lógicamente.
+        $totalProductos = Producto::withTrashed()->count();
+
+        // Productos activos que no están eliminados.
         $productosActivos = Producto::where('estado', 'Activo')
             ->count();
 
-        $productosInactivos = Producto::where('estado', 'Inactivo')
+        // Productos inactivos:
+        // Incluye estado Inactivo y eliminados lógicamente.
+        $productosInactivos = Producto::withTrashed()
+            ->where(function ($query) {
+                $query->where('estado', 'Inactivo')
+                    ->orWhereNotNull('deleted_at');
+            })
             ->count();
 
         // Estadísticas generales de categorías
