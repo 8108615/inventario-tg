@@ -70,31 +70,65 @@ class RoleController extends Controller
     /**
      * Update the specified resource in storage.
      */
+
     public function update(Request $request, string $id)
     {
-         $request->validate([
-            'name' => 'required|string|max:255|unique:roles,name,' . $id,
+        $rol = Role::findOrFail($id);
+
+        // Proteger el nombre del rol SUPER ADMIN
+        if ($rol->name === 'SUPER ADMIN') {
+            return redirect()->route('admin.roles.index')
+                ->with('mensaje', 'El rol SUPER ADMIN está protegido y no puede modificarse.')
+                ->with('icono', 'warning');
+        }
+
+        // Validar el nombre del rol
+        $request->validate([
+            'name' => [
+                'required',
+                'string',
+                'max:255',
+                'unique:roles,name,' . $rol->id,
+                'not_in:SUPER ADMIN',
+            ],
         ]);
 
-        $rol = Role::find($id);
+        // Actualizar el rol
         $rol->name = $request->name;
         $rol->save();
 
         return redirect()->route('admin.roles.index')
-            ->with('mensaje', 'Rol actualizado correctamente')
+            ->with('mensaje', 'Rol actualizado correctamente.')
             ->with('icono', 'success');
     }
+
 
     /**
      * Remove the specified resource from storage.
      */
     public function destroy(string $id)
     {
-        $rol = Role::find($id);
+        $rol = Role::findOrFail($id);
+
+        // Proteger el rol SUPER ADMIN
+        if ($rol->name === 'SUPER ADMIN') {
+            return redirect()->route('admin.roles.index')
+                ->with('mensaje', 'El rol SUPER ADMIN está protegido y no puede eliminarse.')
+                ->with('icono', 'warning');
+        }
+
+        // Evitar eliminar roles que tienen usuarios asignados
+        if ($rol->users()->exists()) {
+            return redirect()->route('admin.roles.index')
+                ->with('mensaje', 'No se puede eliminar este rol porque tiene usuarios asignados.')
+                ->with('icono', 'warning');
+        }
+
+        // Eliminar rol
         $rol->delete();
 
         return redirect()->route('admin.roles.index')
-            ->with('mensaje', 'Rol eliminado correctamente')
+            ->with('mensaje', 'Rol eliminado correctamente.')
             ->with('icono', 'success');
     }
 
@@ -113,12 +147,30 @@ class RoleController extends Controller
     {
         $rol = Role::findOrFail($id);
 
-        $permisos = $request->input('permisos', []);
-        $rol->syncPermissions($permisos);
+        // Proteger los permisos del SUPER ADMIN
+        if ($rol->name === 'SUPER ADMIN') {
+            return redirect()->route('admin.roles.index')
+                ->with('mensaje', 'Los permisos del rol SUPER ADMIN están protegidos y no pueden modificarse.')
+                ->with('icono', 'warning');
+        }
 
-        return redirect()->route('admin.roles.index')->with([
-            'mensaje' => 'Permisos actualizados correctamente para el rol ' . $rol->name,
-            'icono' => 'success'
+        // Validar que los permisos existan en la base de datos
+        $datos = $request->validate([
+            'permisos' => ['nullable', 'array'],
+            'permisos.*' => [
+                'required',
+                'string',
+                'distinct',
+                \Illuminate\Validation\Rule::exists('permissions', 'name')
+                    ->where('guard_name', $rol->guard_name),
+            ],
         ]);
+
+        // Actualizar los permisos del rol
+        $rol->syncPermissions($datos['permisos'] ?? []);
+
+        return redirect()->route('admin.roles.index')
+            ->with('mensaje', 'Permisos actualizados correctamente para el rol ' . $rol->name)
+            ->with('icono', 'success');
     }
 }
