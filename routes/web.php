@@ -6,6 +6,8 @@ Route::get('/', function () {
     return auth()->check() ? redirect()->route('dashboard') : redirect()->route('login');
 })->name('home');
 
+// Redirigir el registro público al login
+Route::get('/register', function () { return redirect()->route('login');});
 
 //rutas para el admin
 Route::get('/dashboard', function (){ return redirect()->route('admin.index'); })->name('dashboard')->middleware('auth');
