@@ -42,16 +42,47 @@
 
             {{-- Inputs --}}
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {{-- Rol --}}
-                <flux:select name="rol" label="Rol del usuario (*)" required>
-                    @foreach ($roles as $rol)
-                        <flux:select.option
-                            value="{{ $rol->name }}"
-                            :selected="old('rol', $usuario->getRoleNames()->first() ?? '') == $rol->name">
-                            {{ $rol->name }}
-                        </flux:select.option>
-                    @endforeach
-                </flux:select>
+                {{-- Rol del usuario --}}
+                @if ($usuario->hasRole('SUPER ADMIN'))
+
+                    {{-- SUPER ADMIN: mostrar rol sin permitir modificarlo --}}
+                    <div>
+                        <flux:select
+                            label="Rol del usuario (*)"
+                            disabled
+                        >
+                            <flux:select.option value="SUPER ADMIN" selected>
+                                SUPER ADMIN
+                            </flux:select.option>
+                        </flux:select>
+
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                            <i class="fas fa-shield-alt mr-1"></i>
+                            Rol protegido. No se puede modificar.
+                        </p>
+                    </div>
+
+                @else
+
+                    {{-- Usuarios normales: seleccionar otros roles --}}
+                    <flux:select
+                        name="rol"
+                        label="Rol del usuario (*)"
+                        required
+                    >
+                        @foreach ($roles as $rol)
+                            @if ($rol->name !== 'SUPER ADMIN')
+                                <flux:select.option
+                                    value="{{ $rol->name }}"
+                                    :selected="old('rol', $usuario->getRoleNames()->first() ?? '') == $rol->name"
+                                >
+                                    {{ $rol->name }}
+                                </flux:select.option>
+                            @endif
+                        @endforeach
+                    </flux:select>
+
+                @endif
 
                 <flux:input name="name" label="Nombre completo (*)" value="{{ old('name', $usuario->name) }}" required />
                 <flux:input name="email" label="Email (*)" type="email" value="{{ old('email', $usuario->email) }}" required />
@@ -86,16 +117,45 @@
                     </flux:select.option>
                 </flux:select>
 
-                <flux:select name="estado" label="Estado (*)" required>
-                    <flux:select.option value="Activo"
-                        :selected="old('estado', $usuario->estado) == 'Activo'">
-                        Activo
-                    </flux:select.option>
-                    <flux:select.option value="Inactivo"
-                        :selected="old('estado', $usuario->estado) == 'Inactivo'">
-                        Inactivo
-                    </flux:select.option>
-                </flux:select>
+                {{-- Estado del usuario --}}
+                @if ($usuario->hasRole('SUPER ADMIN'))
+
+                    {{-- SUPER ADMIN: Estado protegido --}}
+                    <div>
+                        <flux:select
+                            label="Estado (*)"
+                            disabled
+                        >
+                            <flux:select.option
+                                value="{{ $usuario->estado }}"
+                                selected
+                            >
+                                {{ $usuario->estado }}
+                            </flux:select.option>
+                        </flux:select>
+
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                            <i class="fas fa-shield-alt mr-1"></i>
+                            Estado protegido. No se puede modificar.
+                        </p>
+                    </div>
+
+                @else
+
+                    {{-- Usuarios normales: pueden cambiar su estado --}}
+                    <flux:select name="estado" label="Estado (*)" required>
+                        <flux:select.option value="Activo"
+                            :selected="old('estado', $usuario->estado) == 'Activo'">
+                            Activo
+                        </flux:select.option>
+
+                        <flux:select.option value="Inactivo"
+                            :selected="old('estado', $usuario->estado) == 'Inactivo'">
+                            Inactivo
+                        </flux:select.option>
+                    </flux:select>
+
+                @endif
 
                 <flux:input name="password" label="Contraseña (dejar en blanco para no cambiar)" type="password" placeholder="••••••••" />
                 <flux:input name="password_confirmation" label="Confirmar Contraseña" type="password" placeholder="••••••••" />

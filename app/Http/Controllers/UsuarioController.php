@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Spatie\Permission\Models\Role;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 
 class UsuarioController extends Controller
 {
@@ -33,7 +34,9 @@ class UsuarioController extends Controller
      */
     public function create()
     {
-        $roles = Role::all();
+        // Mostrar todos los roles excepto SUPER ADMIN
+        $roles = Role::where('name', '!=', 'SUPER ADMIN')->get();
+
         return view('admin.usuarios.create', compact('roles'));
     }
 
@@ -55,7 +58,13 @@ class UsuarioController extends Controller
             'genero' => 'required|in:Masculino,Femenino',
             'estado' => 'required|in:Activo,Inactivo',
             'foto_perfil' => 'nullable|image|max:2048', // Max 2MB
-            'rol' => 'required'
+            'rol' => [
+                'required',
+                'string',
+                Rule::exists('roles', 'name')
+                    ->where('guard_name', 'web'),
+                Rule::notIn(['SUPER ADMIN']),
+            ],
         ]);
 
         // 2. Manejo de la foto
@@ -92,7 +101,14 @@ class UsuarioController extends Controller
     public function edit(string $id)
     {
         $usuario = User::findOrFail($id);
-        $roles = Role::all();
+
+        // Para usuarios normales, excluir SUPER ADMIN
+        // Para el SUPER ADMIN, permitir mostrar su rol actual
+        if ($usuario->hasRole('SUPER ADMIN')) {
+            $roles = Role::where('name', 'SUPER ADMIN')->get();
+        } else {
+            $roles = Role::where('name', '!=', 'SUPER ADMIN')->get();
+        }
 
         return view('admin.usuarios.edit', compact('usuario', 'roles'));
     }
@@ -108,7 +124,15 @@ class UsuarioController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email,' . $usuario->id,
-            'rol' => 'required|string|exists:roles,name',
+            'rol' => $usuario->hasRole('SUPER ADMIN')
+                ? ['nullable', Rule::in(['SUPER ADMIN'])]
+                : [
+                    'required',
+                    'string',
+                    Rule::exists('roles', 'name')
+                        ->where('guard_name', 'web'),
+                    Rule::notIn(['SUPER ADMIN']),
+                ],
             'foto_perfil' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'tipo_documento' => 'required',
             'numero_documento' => 'required',
@@ -116,7 +140,9 @@ class UsuarioController extends Controller
             'direccion' => 'required',
             'fecha_nacimiento' => 'required|date',
             'genero' => 'required',
-            'estado' => 'required',
+            'estado' => $usuario->hasRole('SUPER ADMIN')
+                ? ['nullable', Rule::in([$usuario->estado])]
+                : ['required', Rule::in(['Activo', 'Inactivo'])],
             // Validamos la contraseña solo si el usuario decide cambiarla
             'password' => 'nullable|string|min:8|confirmed',
         ]);
@@ -139,7 +165,9 @@ class UsuarioController extends Controller
         $usuario->direccion = $request->direccion;
         $usuario->fecha_nacimiento = $request->fecha_nacimiento;
         $usuario->genero = $request->genero;
-        $usuario->estado = $request->estado;
+        if (!$usuario->hasRole('SUPER ADMIN')) {
+            $usuario->estado = $request->estado;
+        }
 
         // Solo actualizar contraseña si viene en el request
         if ($request->filled('password')) {
@@ -149,7 +177,9 @@ class UsuarioController extends Controller
         $usuario->save();
 
         // 4. Sincronizar rol
-        $usuario->syncRoles([$request->rol]);
+        if (!$usuario->hasRole('SUPER ADMIN')) {
+            $usuario->syncRoles([$request->rol]);
+        }
 
         return redirect()->route('admin.usuarios.index')->with([
             'mensaje' => 'Usuario actualizado correctamente',

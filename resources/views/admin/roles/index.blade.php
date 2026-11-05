@@ -80,7 +80,7 @@
                                         <i class="fas fa-key mr-2"></i> Permisos
                                     </a>
                                 @endcan
-                                
+
                                 @can('Editar Rol')
                                     <a href="{{ url('/admin/rol/' . $rol->id . '/edit') }}"
                                         class="inline-flex items-center px-4 py-2 bg-green-500 hover:bg-green-600 text-white text-xs font-semibold rounded transition">
@@ -88,18 +88,39 @@
                                     </a>
                                 @endcan
 
-                                @can('Eliminar Rol')
-                                    <form action="{{ url('/admin/rol/' . $rol->id) }}" method="post"
-                                        id="miFormulario{{ $rol->id }}">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" style="cursor: pointer"
-                                            class="inline-flex items-center px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-xs font-semibold rounded transition"
-                                            onclick="preguntar{{ $rol->id }}(event)" >
-                                            <i class="fas fa-trash-alt mr-2"></i> Eliminar
-                                        </button>
-                                    </form>
-                                @endcan
+                                @if ($rol->name === 'SUPER ADMIN')
+                                    <span
+                                        class="inline-flex items-center px-4 py-2
+                                            bg-gray-600/20 border border-gray-500/40
+                                            text-gray-400 text-xs font-semibold
+                                            rounded cursor-not-allowed"
+                                        title="Este rol está protegido y no puede eliminarse">
+                                        <i class="fas fa-shield-alt mr-2"></i>
+                                        Protegido
+                                    </span>
+                                @else
+
+                                    @can('Eliminar Rol')
+                                        <form
+                                            action="{{ url('/admin/rol/' . $rol->id) }}"
+                                            method="POST"
+                                            id="miFormulario{{ $rol->id }}">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button
+                                                type="submit"
+                                                class="inline-flex items-center px-4 py-2
+                                                    bg-red-500 hover:bg-red-600
+                                                    text-white text-xs font-semibold
+                                                    rounded transition"
+                                                onclick="preguntar{{ $rol->id }}(event)">
+
+                                                <i class="fas fa-trash-alt mr-2"></i>
+                                                Eliminar
+                                            </button>
+                                        </form>
+                                    @endcan
+                                @endif
                                 <script>
                                     function preguntar{{ $rol->id }}(event) {
                                         event.preventDefault();
