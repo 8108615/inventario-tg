@@ -37,11 +37,34 @@ class RoleController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'name' => 'required|string|max:255|unique:roles,name',
+            'name' => [
+                'required',
+                'string',
+                'max:255',
+                function ($attribute, $value, $fail) {
+                    if (mb_strtoupper(trim($value)) === 'SUPER ADMIN') {
+                        $fail('El nombre SUPER ADMIN está reservado y no puede utilizarse.');
+                    }
+                },
+            ],
         ]);
 
+        $nombre = trim($request->name);
+
+        // Verificar duplicados dentro del guard web.
+        $existe = Role::where('guard_name', 'web')
+            ->whereRaw('LOWER(name) = ?', [mb_strtolower($nombre)])
+            ->exists();
+
+        if ($existe) {
+            return back()
+                ->withErrors(['name' => 'Ya existe un rol con ese nombre.'])
+                ->withInput();
+        }
+
         $rol = new Role();
-        $rol->name = $request->name;
+        $rol->name = $nombre;
+        $rol->guard_name = 'web';
         $rol->save();
 
         return redirect()->route('admin.roles.index')
@@ -75,26 +98,42 @@ class RoleController extends Controller
     {
         $rol = Role::findOrFail($id);
 
-        // Proteger el nombre del rol SUPER ADMIN
-        if ($rol->name === 'SUPER ADMIN') {
+        // Proteger el rol SUPER ADMIN.
+        if (mb_strtoupper(trim($rol->name)) === 'SUPER ADMIN') {
             return redirect()->route('admin.roles.index')
                 ->with('mensaje', 'El rol SUPER ADMIN está protegido y no puede modificarse.')
                 ->with('icono', 'warning');
         }
 
-        // Validar el nombre del rol
+        // Validar el nombre.
         $request->validate([
             'name' => [
                 'required',
                 'string',
                 'max:255',
-                'unique:roles,name,' . $rol->id,
-                'not_in:SUPER ADMIN',
+                function ($attribute, $value, $fail) {
+                    if (mb_strtoupper(trim($value)) === 'SUPER ADMIN') {
+                        $fail('El nombre SUPER ADMIN está reservado y no puede utilizarse.');
+                    }
+                },
             ],
         ]);
 
-        // Actualizar el rol
-        $rol->name = $request->name;
+        $nombre = trim($request->name);
+
+        // Evitar nombres duplicados dentro del mismo guard.
+        $existe = Role::where('guard_name', $rol->guard_name)
+            ->where('id', '!=', $rol->id)
+            ->whereRaw('LOWER(name) = ?', [mb_strtolower($nombre)])
+            ->exists();
+
+        if ($existe) {
+            return back()
+                ->withErrors(['name' => 'Ya existe un rol con ese nombre.'])
+                ->withInput();
+        }
+
+        $rol->name = $nombre;
         $rol->save();
 
         return redirect()->route('admin.roles.index')
@@ -135,8 +174,17 @@ class RoleController extends Controller
     // Mostrar vista para asignar permisos a un rol específico
     public function editPermisos(string $id)
     {
+        // Solo SUPER ADMIN puede acceder a la gestión de permisos.
+        if (!auth()->user()->hasRole('SUPER ADMIN')) {
+            abort(403, 'No tienes autorización para gestionar los permisos de los roles.');
+        }
+
         $rol = Role::findOrFail($id);
-        $permisos = Permission::all();
+
+        // Obtener todos los permisos disponibles.
+        $permisos = Permission::where('guard_name', $rol->guard_name)->get();
+
+        // Obtener los permisos asignados al rol.
         $permisoRol = $rol->permissions->pluck('name')->toArray();
 
         return view('admin.roles.permisos', compact('rol', 'permisos', 'permisoRol'));
@@ -145,6 +193,10 @@ class RoleController extends Controller
     // Actualizar los permisos seleccionados para el rol
     public function updatePermisos(Request $request, string $id)
     {
+        // Solo SUPER ADMIN puede modificar permisos.
+        if (!auth()->user()->hasRole('SUPER ADMIN')) {
+            abort(403, 'No tienes autorización para modificar los permisos de los roles.');
+        }
         $rol = Role::findOrFail($id);
 
         // Proteger los permisos del SUPER ADMIN

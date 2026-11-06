@@ -102,12 +102,23 @@ class UsuarioController extends Controller
     {
         $usuario = User::findOrFail($id);
 
-        // Para usuarios normales, excluir SUPER ADMIN
-        // Para el SUPER ADMIN, permitir mostrar su rol actual
+        // Solo SUPER ADMIN puede editar cuentas SUPER ADMIN.
+        if (
+            $usuario->hasRole('SUPER ADMIN') &&
+            !auth()->user()->hasRole('SUPER ADMIN')
+        ) {
+            abort(403, 'No tienes autorización para editar este usuario.');
+        }
+
+        // Obtener únicamente roles del guard web.
         if ($usuario->hasRole('SUPER ADMIN')) {
-            $roles = Role::where('name', 'SUPER ADMIN')->get();
+            $roles = Role::where('guard_name', 'web')
+                ->where('name', 'SUPER ADMIN')
+                ->get();
         } else {
-            $roles = Role::where('name', '!=', 'SUPER ADMIN')->get();
+            $roles = Role::where('guard_name', 'web')
+                ->where('name', '!=', 'SUPER ADMIN')
+                ->get();
         }
 
         return view('admin.usuarios.edit', compact('usuario', 'roles'));
@@ -119,6 +130,14 @@ class UsuarioController extends Controller
     public function update(Request $request, string $id)
     {
         $usuario = User::findOrFail($id);
+
+        // Solo SUPER ADMIN puede modificar cuentas SUPER ADMIN.
+        if (
+            $usuario->hasRole('SUPER ADMIN') &&
+            !auth()->user()->hasRole('SUPER ADMIN')
+        ) {
+            abort(403, 'No tienes autorización para modificar este usuario.');
+        }
 
         // 1. Validaciones
         $request->validate([
@@ -135,7 +154,12 @@ class UsuarioController extends Controller
                 ],
             'foto_perfil' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'tipo_documento' => 'required',
-            'numero_documento' => 'required',
+            'numero_documento' => [
+                'required',
+                'string',
+                Rule::unique('users', 'numero_documento')
+                    ->ignore($usuario->id),
+            ],
             'celular' => 'required',
             'direccion' => 'required',
             'fecha_nacimiento' => 'required|date',
@@ -189,11 +213,32 @@ class UsuarioController extends Controller
 
     public function restaurar($id)
     {
+        // Buscar al usuario, incluyendo eliminados lógicamente.
         $usuario = User::withTrashed()->findOrFail($id);
+
+        // Solo SUPER ADMIN puede restaurar cuentas SUPER ADMIN.
+        if (
+            $usuario->hasRole('SUPER ADMIN') &&
+            !auth()->user()->hasRole('SUPER ADMIN')
+        ) {
+            abort(403, 'No tienes autorización para restaurar este usuario.');
+        }
+
+        // Verificar que realmente esté eliminado.
+        if (!$usuario->trashed()) {
+            return redirect()->route('admin.usuarios.index')->with([
+                'mensaje' => 'El usuario ya se encuentra activo en el sistema.',
+                'icono' => 'warning',
+            ]);
+        }
+
+        // Restaurar usuario.
         $usuario->restore();
 
-        // Redirigir con el mensaje 'success'
-        return redirect()->back()->with('success', 'Usuario restaurado correctamente.');
+        return redirect()->route('admin.usuarios.index')->with([
+            'mensaje' => 'Usuario restaurado correctamente.',
+            'icono' => 'success',
+        ]);
     }
 
     /**
@@ -202,16 +247,29 @@ class UsuarioController extends Controller
     public function destroy(string $id)
     {
         $usuario = User::findOrFail($id);
-        if ($usuario->hasRole('SUPER ADMIN')) {
+
+        // Impedir que un usuario elimine su propia cuenta.
+        if ($usuario->id === auth()->id()) {
             return redirect()->route('admin.usuarios.index')->with([
-                'mensaje' => 'No puedes eliminar a un Super Admin',
-                'icono' => 'error'
+                'mensaje' => 'No puedes eliminar tu propia cuenta.',
+                'icono' => 'warning',
             ]);
         }
+
+        // Proteger las cuentas SUPER ADMIN.
+        if ($usuario->hasRole('SUPER ADMIN')) {
+            return redirect()->route('admin.usuarios.index')->with([
+                'mensaje' => 'No puedes eliminar una cuenta SUPER ADMIN.',
+                'icono' => 'error',
+            ]);
+        }
+
+        // Eliminación lógica mediante Soft Deletes.
         $usuario->delete();
+
         return redirect()->route('admin.usuarios.index')->with([
-            'mensaje' => 'Usuario eliminado correctamente',
-            'icono' => 'success'
+            'mensaje' => 'Usuario eliminado correctamente.',
+            'icono' => 'success',
         ]);
     }
 }
