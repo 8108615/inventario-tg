@@ -21,8 +21,11 @@ Route::get('/admin/roles/create', [App\Http\Controllers\RoleController::class, '
 Route::post('/admin/roles/create', [App\Http\Controllers\RoleController::class, 'store'])->name('admin.roles.store')->middleware(['auth', 'permission:Crear Rol']);
 Route::get('/admin/rol/{id}', [App\Http\Controllers\RoleController::class, 'show'])->name('admin.roles.show')->middleware(['auth', 'permission:Ver Rol']);
 Route::get('/admin/rol/{id}/edit', [App\Http\Controllers\RoleController::class, 'edit'])->name('admin.roles.edit')->middleware(['auth', 'permission:Editar Rol']);
-Route::get('/admin/rol/{id}/permisos', [App\Http\Controllers\RoleController::class, 'editPermisos'])->name('admin.roles.permisos.edit')->middleware(['auth', 'permission:Editar Rol']);
-Route::put('/admin/rol/{id}/permisos', [App\Http\Controllers\RoleController::class, 'updatePermisos'])->name('admin.roles.permisos.update')->middleware(['auth', 'permission:Editar Rol']);
+Route::get('/admin/rol/{id}/permisos',[App\Http\Controllers\RoleController::class, 'editPermisos'])->name('admin.roles.permisos.edit')->middleware(['auth', 'role:SUPER ADMIN']);
+
+// Actualizar permisos de un rol.
+// Solo SUPER ADMIN puede realizar esta operación.
+Route::put('/admin/rol/{id}/permisos',[App\Http\Controllers\RoleController::class, 'updatePermisos'])->name('admin.roles.permisos.update')->middleware(['auth', 'role:SUPER ADMIN']);
 Route::put('/admin/rol/{id}', [App\Http\Controllers\RoleController::class, 'update'])->name('admin.roles.update')->middleware(['auth', 'permission:Editar Rol']);
 Route::delete('/admin/rol/{id}', [App\Http\Controllers\RoleController::class, 'destroy'])->name('admin.roles.destroy')->middleware(['auth', 'permission:Eliminar Rol']);
 
