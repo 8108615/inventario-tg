@@ -502,7 +502,12 @@ class ProductoController extends Controller
         $producto = Producto::withTrashed()->findOrFail($id);
         $producto->restore();
 
-        return redirect()->back()->with('success', 'Producto restaurado correctamente.');
+        return redirect()
+        ->route('admin.productos.index')
+        ->with([
+            'mensaje' => 'Producto restaurado correctamente.',
+            'icono' => 'success',
+        ]);
     }
 
     public function destroy(string $id)

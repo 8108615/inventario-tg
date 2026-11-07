@@ -17,8 +17,9 @@
             </div>
         </div>
 
-        {{-- Indicadores --}}
+        {{-- Indicadores: únicamente módulos autorizados --}}
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
+            @if ($puedeVerProductos)
             <div class="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900">
                 <div class="flex items-start justify-between gap-2"><p class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Total de productos</p><span class="rounded-xl bg-blue-500/10 p-2.5 text-blue-500"><svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="m3 7 9-4 9 4v10l-9 4-9-4V7Zm0 0 9 4 9-4m-9 4v10"/></svg></span></div>
                 <p class="mt-3 text-3xl font-bold tracking-tight text-zinc-900 dark:text-white">{{ number_format($totalProductos, 0, ',', '.') }}</p><p class="mt-3 text-xs text-zinc-500 dark:text-zinc-400"><span class="mr-1 text-blue-500">●</span> Inventario registrado</p>
@@ -31,18 +32,24 @@
                 <div class="flex items-start justify-between gap-2"><p class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Productos inactivos</p><span class="rounded-xl bg-amber-500/10 p-2.5 text-amber-500"><svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v6m0 4h.01"/></svg></span></div>
                 <p class="mt-3 text-3xl font-bold tracking-tight text-zinc-900 dark:text-white">{{ number_format($productosInactivos, 0, ',', '.') }}</p><p class="mt-3 text-xs text-amber-500"><span class="mr-1">●</span> Productos dados de baja</p>
             </div>
+            @endif
+            @if ($puedeVerCategorias)
             <div class="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900">
                 <div class="flex items-start justify-between gap-2"><p class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Categorías</p><span class="rounded-xl bg-violet-500/10 p-2.5 text-violet-500"><svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span></div>
                 <p class="mt-3 text-3xl font-bold tracking-tight text-zinc-900 dark:text-white">{{ number_format($totalCategorias, 0, ',', '.') }}</p><p class="mt-3 text-xs text-violet-500"><span class="mr-1">●</span> {{ number_format($categoriasActivas, 0, ',', '.') }} categorías activas</p>
             </div>
+            @endif
+            @if ($puedeVerUsuarios)
             <div class="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900">
                 <div class="flex items-start justify-between gap-2"><p class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Usuarios registrados</p><span class="rounded-xl bg-indigo-500/10 p-2.5 text-indigo-500"><svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="9" cy="8" r="4"/><path d="M2 21v-2a7 7 0 0 1 14 0v2m1-16a4 4 0 0 1 0 7m1 3a6 6 0 0 1 4 6"/></svg></span></div>
                 <p class="mt-3 text-3xl font-bold tracking-tight text-zinc-900 dark:text-white">{{ number_format($totalUsuarios, 0, ',', '.') }}</p><p class="mt-3 text-xs text-zinc-500 dark:text-zinc-400"><span class="text-emerald-500">● {{ $usuariosActivos }} activos</span> <span class="ml-2">● {{ $usuariosInactivos }} inactivos</span></p>
             </div>
+            @endif
         </div>
 
         {{-- Distribución y accesos rápidos --}}
-        <div class="grid grid-cols-1 gap-5 xl:grid-cols-3">
+        <div class="grid grid-cols-1 gap-5 {{ $puedeVerProductos && $puedeVerCategorias ? 'xl:grid-cols-3' : 'xl:grid-cols-1' }}">
+            @if ($puedeVerProductos && $puedeVerCategorias)
             <section class="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 md:p-6 xl:col-span-2">
                 <div class="flex flex-wrap items-start justify-between gap-3">
                     <div><h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Productos por categoría</h2><p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Las seis categorías activas con más productos.</p></div>
@@ -65,6 +72,7 @@
                 </div>
                 <p class="mt-7 border-t border-zinc-100 pt-4 text-xs text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">El porcentaje indica la proporción respecto al total de productos registrados. Las barras se escalan respecto a la categoría con mayor cantidad.</p>
             </section>
+            @endif
 
             <section class="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 md:p-6">
                 <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Accesos rápidos</h2><p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Gestiona los módulos autorizados.</p>

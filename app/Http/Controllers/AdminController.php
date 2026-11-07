@@ -11,56 +11,142 @@ class AdminController extends Controller
     public function index()
     {
         // ========================================
-        // ESTADÍSTICAS GENERALES DE PRODUCTOS
+        // VERIFICAR PERMISOS DEL USUARIO
         // ========================================
 
-        // Total de productos registrados,
-        // incluyendo los eliminados lógicamente.
-        $totalProductos = Producto::withTrashed()->count();
+        $usuario = auth()->user();
 
-        // Productos activos que no están eliminados.
-        $productosActivos = Producto::where('estado', 'Activo')
-            ->count();
+        $puedeVerProductos = $usuario->can('Listado de Productos');
+        $puedeVerCategorias = $usuario->can('Listado de Categorías');
+        $puedeVerUsuarios = $usuario->can('Listado de Usuarios');
 
-        // Productos inactivos:
-        // Incluye estado Inactivo y eliminados lógicamente.
-        $productosInactivos = Producto::withTrashed()
-            ->where(function ($query) {
-                $query->where('estado', 'Inactivo')
-                    ->orWhereNotNull('deleted_at');
-            })
-            ->count();
+        // ========================================
+        // INICIALIZAR ESTADÍSTICAS
+        // ========================================
 
-        // Estadísticas generales de categorías
-        $totalCategorias = Categoria::count();
+        $totalProductos = null;
+        $productosActivos = null;
+        $productosInactivos = null;
 
-        $categoriasActivas = Categoria::where('estado', 'Activo')
-            ->count();
+        $totalCategorias = null;
+        $categoriasActivas = null;
 
-        // Estadísticas generales de usuarios
-        $totalUsuarios = User::count();
+        $totalUsuarios = null;
+        $usuariosActivos = null;
+        $usuariosInactivos = null;
 
-        $usuariosActivos = User::where('estado', 'Activo')
-            ->count();
+        $productosPorCategoria = collect();
+        $maxProductosCategoria = 1;
 
-        $usuariosInactivos = User::where('estado', 'Inactivo')
-            ->count();
+        // ========================================
+        // ESTADÍSTICAS DE PRODUCTOS
+        // ========================================
 
-        // Productos agrupados por categoría para el gráfico
-        $productosPorCategoria = Categoria::query()
-            ->where('estado', 'Activo')
-            ->withCount('productos')
-            ->orderByDesc('productos_count')
-            ->take(6)
-            ->get();
+        if ($puedeVerProductos) {
 
-        // Valor máximo para calcular el ancho de las barras
-        $maxProductosCategoria = max(
-            1,
-            (int) $productosPorCategoria->max('productos_count')
-        );
+            $estadisticas = Producto::withTrashed()
+                ->selectRaw("
+                    COUNT(*) AS total,
+                    COALESCE(SUM(
+                        CASE
+                            WHEN estado = 'Activo'
+                             AND deleted_at IS NULL
+                            THEN 1 ELSE 0
+                        END
+                    ), 0) AS activos,
+                    COALESCE(SUM(
+                        CASE
+                            WHEN estado = 'Inactivo'
+                              OR deleted_at IS NOT NULL
+                            THEN 1 ELSE 0
+                        END
+                    ), 0) AS inactivos
+                ")
+                ->first();
+
+            $totalProductos = (int) $estadisticas->total;
+            $productosActivos = (int) $estadisticas->activos;
+            $productosInactivos = (int) $estadisticas->inactivos;
+        }
+
+        // ========================================
+        // ESTADÍSTICAS DE CATEGORÍAS
+        // ========================================
+
+        if ($puedeVerCategorias) {
+
+            $estadisticas = Categoria::query()
+                ->selectRaw("
+                    COUNT(*) AS total,
+                    COALESCE(SUM(
+                        CASE
+                            WHEN estado = 'Activo'
+                            THEN 1 ELSE 0
+                        END
+                    ), 0) AS activos
+                ")
+                ->first();
+
+            $totalCategorias = (int) $estadisticas->total;
+            $categoriasActivas = (int) $estadisticas->activos;
+        }
+
+        // ========================================
+        // ESTADÍSTICAS DE USUARIOS
+        // ========================================
+
+        if ($puedeVerUsuarios) {
+
+            $estadisticas = User::query()
+                ->selectRaw("
+                    COUNT(*) AS total,
+                    COALESCE(SUM(
+                        CASE
+                            WHEN estado = 'Activo'
+                            THEN 1 ELSE 0
+                        END
+                    ), 0) AS activos,
+                    COALESCE(SUM(
+                        CASE
+                            WHEN estado = 'Inactivo'
+                            THEN 1 ELSE 0
+                        END
+                    ), 0) AS inactivos
+                ")
+                ->first();
+
+            $totalUsuarios = (int) $estadisticas->total;
+            $usuariosActivos = (int) $estadisticas->activos;
+            $usuariosInactivos = (int) $estadisticas->inactivos;
+        }
+
+        // ========================================
+        // PRODUCTOS POR CATEGORÍA
+        // ========================================
+
+        if ($puedeVerProductos && $puedeVerCategorias) {
+
+            $productosPorCategoria = Categoria::query()
+                ->where('estado', 'Activo')
+                ->withCount('productos')
+                ->orderByDesc('productos_count')
+                ->take(6)
+                ->get();
+
+            $maxProductosCategoria = max(
+                1,
+                (int) $productosPorCategoria->max('productos_count')
+            );
+        }
+
+        // ========================================
+        // MOSTRAR DASHBOARD
+        // ========================================
 
         return view('admin.index', compact(
+            'puedeVerProductos',
+            'puedeVerCategorias',
+            'puedeVerUsuarios',
             'totalProductos',
             'productosActivos',
             'productosInactivos',
